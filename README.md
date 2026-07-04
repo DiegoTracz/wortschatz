@@ -55,6 +55,30 @@ Endpoints JSON (sessão web + CSRF):
 
 As demais rotas de livros e cartões são CRUD padrão via Inertia (ver `routes/web.php`).
 
+## Importação automática
+
+Além do upload manual em `/importar`, há uma API stateless (token via `Authorization: Bearer`, sem sessão/CSRF) pensada para automação:
+
+| Endpoint | Payload | Usado por |
+| --- | --- | --- |
+| `POST /api/importar/arquivo` | multipart com o `My Clippings.txt` (campo `file`) | Watcher USB |
+| `POST /api/importar/destaques` | JSON `{"entries": [{"title", "content", "author?", "type?", "location?", "page?", "highlighted_at?"}]}` (máx. 5000) | Scraper do Amazon Notebook |
+
+Ambos respondem `{"imported": n, "skipped": n, "books": n}` e deduplicam pelo mesmo hash do upload manual — reenviar tudo é sempre seguro. O token é por usuário e fica no banco (nada no `.env`):
+
+```bash
+php artisan clippings:token            # gera (e substitui) o token
+php artisan clippings:token --revoke   # revoga
+php artisan clippings:import <path>    # import direto de um arquivo, sem HTTP
+```
+
+As duas automações prontas moram em `tools/` (fora do lint e do CI):
+
+- **[`tools/kindle-scraper/`](tools/kindle-scraper/)** — puxa os destaques de `ler.amazon.com.br/notebook` com Playwright e envia para a API. Cobre livros comprados na Amazon, sem cabo.
+- **[`tools/usb-watcher/`](tools/usb-watcher/)** — tarefa agendada do Windows que detecta o Kindle plugado no USB e envia o `My Clippings.txt`. Cobre livros sideloaded.
+
+Nota: para o dedupe funcionar entre fontes, o livro é identificado **pelo título** (o autor só é gravado na criação) — as fontes grafam o autor de formas diferentes. Se o título do catálogo da Amazon divergir do gravado pelo Kindle, pode surgir livro duplicado; ajuste em `/livros`.
+
 ## Rodando com Sail (Docker)
 
 Primeira vez:

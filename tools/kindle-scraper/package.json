@@ -1,0 +1,13 @@
+{
+    "name": "kindle-scraper",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "login": "node --env-file=.env src/login.js",
+        "scrape": "node --env-file=.env src/scrape.js",
+        "scrape:dry": "node --env-file=.env src/scrape.js --dry-run"
+    },
+    "dependencies": {
+        "playwright": "^1.50.0"
+    }
+}

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Highlight;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -83,7 +84,7 @@ class KindleClippingsParser
             'location' => $location,
             'page' => $page,
             'highlighted_at' => $this->parseDate($meta),
-            'hash' => sha1(mb_strtolower($title.'|'.$type.'|'.($location ?? $page ?? '').'|'.$content)),
+            'hash' => Highlight::computeHash($title, $type, $location, $page, $content),
         ];
     }
 
