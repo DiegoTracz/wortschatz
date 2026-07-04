@@ -17,27 +17,29 @@ test('revisar um cartão atualiza o agendamento e registra a revisão', function
     $user = User::factory()->create();
     $card = createCard($user);
 
-    $response = $this->actingAs($user)->postJson(route('study.review', $card), ['rating' => 4]);
+    $response = $this->actingAs($user)->postJson(route('study.review', $card), ['rating' => 3]);
 
     $response->assertOk()
         ->assertJsonPath('card.repetitions', 1)
-        ->assertJsonPath('card.interval_days', 1)
+        ->assertJsonPath('card.interval_days', 4) // estabilidade inicial do "bom" no FSRS ≈ 3.71 dias
         ->assertJsonPath('remaining', 0);
 
     $card->refresh();
-    expect($card->due_at->isTomorrow())->toBeTrue()
+    expect($card->due_at->isSameDay(today()->addDays(4)))->toBeTrue()
+        ->and($card->stability)->not->toBeNull()
         ->and($card->reviews()->count())->toBe(1)
-        ->and($card->reviews()->first()->rating)->toBe(4);
+        ->and($card->reviews()->first()->rating)->toBe(3)
+        ->and($card->reviews()->first()->stability_after)->toEqualWithDelta($card->stability, 0.0001);
 });
 
-test('rejeita notas fora da escala', function () {
+test('rejeita notas fora da escala', function (int $rating) {
     $user = User::factory()->create();
     $card = createCard($user);
 
     $this->actingAs($user)
-        ->postJson(route('study.review', $card), ['rating' => 2])
+        ->postJson(route('study.review', $card), ['rating' => $rating])
         ->assertUnprocessable();
-});
+})->with([0, 5]);
 
 test('não permite revisar cartão de outro usuário', function () {
     $owner = User::factory()->create();

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Card;
-use App\Services\Sm2Scheduler;
+use App\Services\FsrsScheduler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -12,7 +12,7 @@ use Inertia\Response;
 
 class StudyController extends Controller
 {
-    public function index(Request $request, Sm2Scheduler $scheduler): Response
+    public function index(Request $request, FsrsScheduler $scheduler): Response
     {
         $cards = $request->user()->cards()
             ->due()
@@ -25,12 +25,12 @@ class StudyController extends Controller
         return Inertia::render('Study', ['cards' => $cards]);
     }
 
-    public function review(Request $request, Card $card, Sm2Scheduler $scheduler): JsonResponse
+    public function review(Request $request, Card $card, FsrsScheduler $scheduler): JsonResponse
     {
         abort_unless($card->user_id === $request->user()->id, 403);
 
         $data = $request->validate([
-            'rating' => ['required', 'integer', Rule::in(Sm2Scheduler::RATINGS)],
+            'rating' => ['required', 'integer', Rule::in(FsrsScheduler::RATINGS)],
         ]);
 
         $intervalBefore = $card->interval_days;
@@ -43,7 +43,8 @@ class StudyController extends Controller
             'rating' => $data['rating'],
             'interval_before' => $intervalBefore,
             'interval_after' => $card->interval_days,
-            'ease_factor_after' => $card->ease_factor,
+            'stability_after' => $card->stability,
+            'difficulty_after' => $card->difficulty,
         ]);
 
         return response()->json([
@@ -52,7 +53,7 @@ class StudyController extends Controller
         ]);
     }
 
-    private function presentCard(Card $card, Sm2Scheduler $scheduler): array
+    private function presentCard(Card $card, FsrsScheduler $scheduler): array
     {
         return [
             'id' => $card->id,

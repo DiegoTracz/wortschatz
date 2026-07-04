@@ -29,6 +29,8 @@ const form = useForm({
 
 const translating = ref(false);
 const translationError = ref<string | null>(null);
+const detectingArticle = ref(false);
+const articleNote = ref<string | null>(null);
 
 watch(
     () => props.open,
@@ -40,6 +42,7 @@ watch(
         form.context = props.card?.context ?? props.highlight?.content ?? '';
         form.highlight_id = props.highlight?.id ?? null;
         translationError.value = null;
+        articleNote.value = null;
     },
 );
 
@@ -53,6 +56,34 @@ const words = computed(() =>
 
 function addWord(word: string) {
     form.front = form.front.trim() ? `${form.front.trim()} ${word}` : word;
+    detectArticle();
+}
+
+/**
+ * Substantivos alemães são capitalizados: quando a frente é uma única palavra
+ * com inicial maiúscula e sem artigo, busca o gênero no Wiktionary e
+ * completa com der/die/das.
+ */
+async function detectArticle() {
+    const word = form.front.trim();
+
+    if (detectingArticle.value || !/^\p{Lu}[\p{L}-]*$/u.test(word)) return;
+
+    detectingArticle.value = true;
+    articleNote.value = null;
+
+    try {
+        const { article } = await postJson<{ article: string | null }>(route('article.detect'), { word });
+
+        if (article && form.front.trim() === word) {
+            form.front = `${article} ${word}`;
+            articleNote.value = `Artigo "${article}" detectado automaticamente.`;
+        }
+    } catch {
+        // Detecção é melhoria opcional: falha silenciosa.
+    } finally {
+        detectingArticle.value = false;
+    }
 }
 
 async function translate() {
@@ -113,7 +144,9 @@ function submit() {
 
                 <div class="space-y-1.5">
                     <Label for="card-front">Frente (alemão)</Label>
-                    <Input id="card-front" v-model="form.front" placeholder="das Fernweh" autocomplete="off" />
+                    <Input id="card-front" v-model="form.front" placeholder="das Fernweh" autocomplete="off" @blur="detectArticle" />
+                    <p v-if="detectingArticle" class="text-xs text-muted-foreground">Detectando artigo…</p>
+                    <p v-else-if="articleNote" class="text-xs text-muted-foreground">{{ articleNote }}</p>
                     <InputError :message="form.errors.front" />
                 </div>
 

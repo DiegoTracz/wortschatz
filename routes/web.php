@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ArticleDetectionController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\DashboardController;
@@ -32,6 +33,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('cartoes/{card}', [CardController::class, 'destroy'])->name('cards.destroy');
 
     Route::post('traduzir', TranslationController::class)->name('translate');
+    Route::post('artigo', ArticleDetectionController::class)->name('article.detect');
 });
 
 require __DIR__.'/settings.php';

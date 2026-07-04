@@ -23,10 +23,10 @@ const current = computed(() => queue.value[0] ?? null);
 const progress = computed(() => (sessionTotal.value ? Math.round((done.value / sessionTotal.value) * 100) : 0));
 
 const ratings = [
-    { value: 0, label: 'Errei', key: '1', classes: 'border-red-500/40 text-red-600 hover:bg-red-500/10 dark:text-red-400' },
-    { value: 3, label: 'Difícil', key: '2', classes: 'border-amber-500/40 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400' },
-    { value: 4, label: 'Bom', key: '3', classes: 'border-green-500/40 text-green-600 hover:bg-green-500/10 dark:text-green-400' },
-    { value: 5, label: 'Fácil', key: '4', classes: 'border-sky-500/40 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400' },
+    { value: 1, label: 'Errei', key: '1', classes: 'border-red-500/40 text-red-600 hover:bg-red-500/10 dark:text-red-400' },
+    { value: 2, label: 'Difícil', key: '2', classes: 'border-amber-500/40 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400' },
+    { value: 3, label: 'Bom', key: '3', classes: 'border-green-500/40 text-green-600 hover:bg-green-500/10 dark:text-green-400' },
+    { value: 4, label: 'Fácil', key: '4', classes: 'border-sky-500/40 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400' },
 ];
 
 function previewLabel(days: number): string {
@@ -49,7 +49,7 @@ async function rate(rating: number) {
         queue.value.shift();
         revealed.value = false;
 
-        if (rating === 0) {
+        if (rating === 1) {
             // Errou: o cartão volta para o fim da fila da sessão.
             queue.value.push(response.card);
         } else {

@@ -11,16 +11,19 @@ class Card extends Model
 {
     protected $fillable = [
         'user_id', 'highlight_id', 'front', 'back', 'context',
-        'ease_factor', 'interval_days', 'repetitions', 'lapses', 'due_at',
+        'stability', 'difficulty', 'interval_days', 'repetitions', 'lapses',
+        'last_reviewed_at', 'due_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'ease_factor' => 'float',
+            'stability' => 'float',
+            'difficulty' => 'float',
             'interval_days' => 'integer',
             'repetitions' => 'integer',
             'lapses' => 'integer',
+            'last_reviewed_at' => 'datetime',
             'due_at' => 'datetime',
         ];
     }
