@@ -57,19 +57,30 @@ As demais rotas de livros e cartões são CRUD padrão via Inertia (ver `routes/
 
 ## Rodando com Sail (Docker)
 
+Primeira vez:
+
 ```bash
 composer install
 cp .env.example .env
 php artisan key:generate
 touch database/database.sqlite
-
 ./vendor/bin/sail up -d
 ./vendor/bin/sail artisan migrate
 ./vendor/bin/sail npm install
-./vendor/bin/sail npm run dev
 ```
 
-App em <http://localhost>. Sem Docker, use `php artisan serve` + `npm run dev`.
+Dia a dia, um comando só (inicia o Docker se estiver parado, sobe o Sail e o Vite):
+
+```bash
+./dev          # sobe tudo
+./dev down     # derruba os containers
+```
+
+App em <http://app.wortschatz.localhost:8000> (domínios `*.localhost` resolvem para a própria máquina nos navegadores modernos — não precisa mexer no hosts). Sem Docker, `php artisan serve` + `npm run dev` atendem na mesma URL.
+
+> **WSL**: para o Docker iniciar sozinho junto com o WSL e o `./dev` nunca pedir senha, rode uma vez: `sudo systemctl enable docker`.
+
+O banco é o arquivo `database/database.sqlite` no próprio projeto, montado no container via bind mount — subir/derrubar/reconstruir containers **não apaga nenhum dado**.
 
 ## Comandos úteis
 

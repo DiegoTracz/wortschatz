@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+#
+# Sobe o ambiente de desenvolvimento completo:
+#   ./dev        → inicia o Docker (se parado), sail up -d e o Vite
+#   ./dev down   → derruba os containers (o banco SQLite fica intacto)
+#
+set -euo pipefail
+cd "$(dirname "$0")"
+
+if [ "${1:-}" = "down" ]; then
+    ./vendor/bin/sail down
+    exit 0
+fi
+
+if ! docker info &>/dev/null; then
+    echo "→ Docker parado; iniciando (pode pedir sua senha do sudo)..."
+    sudo systemctl start docker
+    until docker info &>/dev/null; do sleep 1; done
+    echo "→ Docker no ar."
+fi
+
+./vendor/bin/sail up -d
+echo "→ App: http://app.wortschatz.localhost:8000"
+./vendor/bin/sail npm run dev
