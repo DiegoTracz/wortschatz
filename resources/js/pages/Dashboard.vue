@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import StatTile from '@/components/StatTile.vue';
+import WeeklyReviewsChart from '@/components/WeeklyReviewsChart.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { BookOpen, Flame, GraduationCap, Layers, Sparkles, Upload } from 'lucide-vue-next';
+import { ArrowRight, Flame, GraduationCap, Upload } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 interface Stats {
@@ -15,7 +17,7 @@ interface Stats {
     highlights: number;
     reviewsToday: number;
     streak: number;
-    lastWeek: { label: string; total: number }[];
+    lastWeek: { label: string; date: string; total: number }[];
 }
 
 const props = defineProps<{ stats: Stats }>();
@@ -27,89 +29,106 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const maxWeek = computed(() => Math.max(1, ...props.stats.lastWeek.map((day) => day.total)));
+const plural = (count: number, singular: string, pluralForm: string) => `${count} ${count === 1 ? singular : pluralForm}`;
+
+const heroContext = computed(() => {
+    if (props.stats.due === 0 && props.stats.cards === 0) {
+        return 'Importe seus destaques do Kindle e crie os primeiros cartões.';
+    }
+
+    if (props.stats.due === 0) {
+        return `Tudo em dia. ${plural(props.stats.reviewsToday, 'revisão feita', 'revisões feitas')} hoje — volte amanhã.`;
+    }
+
+    const parts = [plural(props.stats.new, 'cartão novo', 'cartões novos')];
+
+    if (props.stats.reviewsToday > 0) {
+        parts.push(plural(props.stats.reviewsToday, 'revisão feita hoje', 'revisões feitas hoje'));
+    }
+
+    return parts.join(' · ');
+});
 </script>
 
 <template>
     <Head title="Dashboard" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <!-- Chamada para estudar -->
-            <Card class="border-primary/30 bg-primary/5">
-                <CardContent class="flex flex-wrap items-center justify-between gap-4 pt-6">
-                    <div>
-                        <p class="text-lg font-semibold">
-                            {{ stats.due ? `Você tem ${stats.due} cartão(ões) para revisar` : 'Tudo revisado por hoje! 🎉' }}
-                        </p>
-                        <p class="text-sm text-muted-foreground">
-                            {{
-                                stats.due
-                                    ? 'A repetição espaçada funciona melhor quando você revisa todo dia.'
-                                    : 'Volte amanhã ou importe novos destaques do Kindle.'
-                            }}
-                        </p>
+        <div class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 p-4">
+            <section class="grid gap-4 lg:grid-cols-3">
+                <!-- Hero: o número que manda no dia -->
+                <Card class="relative overflow-hidden lg:col-span-2">
+                    <div class="absolute right-6 top-6 flex gap-1.5" aria-hidden="true">
+                        <span class="size-2 rounded-full bg-[#f0b429]" />
+                        <span class="size-2 rounded-full bg-[#f0b429]" />
                     </div>
-                    <Button v-if="stats.due" size="lg" as-child>
-                        <Link :href="route('study.index')"><GraduationCap class="size-5" /> Estudar agora</Link>
-                    </Button>
-                    <Button v-else variant="outline" as-child>
-                        <Link :href="route('import.create')"><Upload class="size-4" /> Importar destaques</Link>
-                    </Button>
-                </CardContent>
-            </Card>
-
-            <!-- Estatísticas -->
-            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <Card>
-                    <CardHeader class="pb-2">
-                        <CardDescription class="flex items-center gap-1.5"><Flame class="size-4 text-orange-500" /> Sequência</CardDescription>
-                        <CardTitle class="text-3xl">{{ stats.streak }} dia(s)</CardTitle>
-                    </CardHeader>
-                    <CardContent class="text-xs text-muted-foreground">{{ stats.reviewsToday }} revisão(ões) hoje</CardContent>
-                </Card>
-                <Card>
-                    <CardHeader class="pb-2">
-                        <CardDescription class="flex items-center gap-1.5"><Layers class="size-4 text-primary" /> Cartões</CardDescription>
-                        <CardTitle class="text-3xl">{{ stats.cards }}</CardTitle>
-                    </CardHeader>
-                    <CardContent class="text-xs text-muted-foreground">{{ stats.new }} novo(s) para aprender</CardContent>
-                </Card>
-                <Card>
-                    <CardHeader class="pb-2">
-                        <CardDescription class="flex items-center gap-1.5"><BookOpen class="size-4 text-emerald-600" /> Livros</CardDescription>
-                        <CardTitle class="text-3xl">{{ stats.books }}</CardTitle>
-                    </CardHeader>
-                    <CardContent class="text-xs text-muted-foreground">{{ stats.highlights }} destaque(s) importado(s)</CardContent>
-                </Card>
-                <Card>
-                    <CardHeader class="pb-2">
-                        <CardDescription class="flex items-center gap-1.5"><Sparkles class="size-4 text-violet-500" /> Vencidos</CardDescription>
-                        <CardTitle class="text-3xl">{{ stats.due }}</CardTitle>
-                    </CardHeader>
-                    <CardContent class="text-xs text-muted-foreground">aguardando revisão</CardContent>
-                </Card>
-            </div>
-
-            <!-- Últimos 7 dias -->
-            <Card>
-                <CardHeader>
-                    <CardTitle class="text-base">Revisões nos últimos 7 dias</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div class="flex h-32 items-end gap-2">
-                        <div v-for="(day, index) in stats.lastWeek" :key="index" class="flex h-full flex-1 flex-col items-center justify-end gap-1">
-                            <span class="text-xs text-muted-foreground">{{ day.total || '' }}</span>
-                            <div
-                                class="w-full rounded-t transition-all"
-                                :class="day.total ? 'bg-primary/80' : 'bg-muted'"
-                                :style="{ height: day.total ? `${(day.total / maxWeek) * 75}%` : '4px' }"
-                            />
-                            <span class="text-xs capitalize text-muted-foreground">{{ day.label }}</span>
+                    <CardContent class="flex h-full flex-col justify-between gap-8 pt-6">
+                        <div>
+                            <p class="text-sm text-muted-foreground">Para revisar agora</p>
+                            <p class="mt-1 text-6xl font-semibold tracking-tight">{{ stats.due }}</p>
+                            <p class="mt-3 max-w-md text-sm text-muted-foreground">{{ heroContext }}</p>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
+                        <div>
+                            <Button v-if="stats.due" size="lg" as-child>
+                                <Link :href="route('study.index')"><GraduationCap class="size-5" /> Estudar agora</Link>
+                            </Button>
+                            <Button v-else variant="outline" as-child>
+                                <Link :href="route('import.create')"><Upload class="size-4" /> Importar destaques</Link>
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <StatTile
+                    label="Sequência de estudo"
+                    :value="plural(stats.streak, 'dia', 'dias')"
+                    :context="stats.reviewsToday > 0 ? plural(stats.reviewsToday, 'revisão hoje', 'revisões hoje') : 'nenhuma revisão hoje ainda'"
+                >
+                    <template #icon><Flame class="size-4 text-[#f0b429]" /></template>
+                </StatTile>
+            </section>
+
+            <section class="grid gap-4 lg:grid-cols-3">
+                <Card class="lg:col-span-2">
+                    <CardHeader class="pb-2">
+                        <CardTitle class="text-base">Revisões por dia</CardTitle>
+                        <CardDescription>Últimos 7 dias</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <WeeklyReviewsChart :days="stats.lastWeek" />
+                    </CardContent>
+                </Card>
+
+                <!-- Biblioteca -->
+                <Card>
+                    <CardHeader class="pb-2">
+                        <CardTitle class="text-base">Biblioteca</CardTitle>
+                        <CardDescription>Seu acervo de estudo</CardDescription>
+                    </CardHeader>
+                    <CardContent class="flex h-full flex-col justify-between gap-4">
+                        <dl class="divide-y">
+                            <div class="flex items-baseline justify-between py-2.5">
+                                <dt class="text-sm text-muted-foreground">Cartões</dt>
+                                <dd class="text-sm">
+                                    <span class="font-semibold">{{ stats.cards }}</span>
+                                    <span v-if="stats.new" class="text-muted-foreground"> · {{ stats.new }} novos</span>
+                                </dd>
+                            </div>
+                            <div class="flex items-baseline justify-between py-2.5">
+                                <dt class="text-sm text-muted-foreground">Destaques</dt>
+                                <dd class="text-sm font-semibold">{{ stats.highlights }}</dd>
+                            </div>
+                            <div class="flex items-baseline justify-between py-2.5">
+                                <dt class="text-sm text-muted-foreground">Livros</dt>
+                                <dd class="text-sm font-semibold">{{ stats.books }}</dd>
+                            </div>
+                        </dl>
+                        <Button variant="ghost" size="sm" class="justify-start px-0 text-muted-foreground hover:text-foreground" as-child>
+                            <Link :href="route('books.index')">Ver livros <ArrowRight class="size-4" /></Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </section>
         </div>
     </AppLayout>
 </template>

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Review;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -63,6 +62,7 @@ class DashboardController extends Controller
 
                 return [
                     'label' => mb_substr($date->locale('pt_BR')->minDayName, 0, 3),
+                    'date' => $date->format('d/m'),
                     'total' => $reviewDates[$date->toDateString()] ?? 0,
                 ];
             })

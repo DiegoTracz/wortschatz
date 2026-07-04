@@ -39,7 +39,7 @@ html {
         --chart-3: 158 55% 40%;
         --chart-4: 350 65% 55%;
         --chart-5: 262 45% 55%;
-        --radius: 0.5rem;
+        --radius: 0.65rem;
         --sidebar-background: 213 30% 96.5%;
         --sidebar-foreground: 215 20% 28%;
         --sidebar-primary: 211 61% 30%;
@@ -70,7 +70,7 @@ html {
         --border: 215 18% 17%;
         --input: 215 18% 20%;
         --ring: 208 75% 60%;
-        --chart-1: 208 75% 62%;
+        --chart-1: 208 62% 55%;
         --chart-2: 42 92% 56%;
         --chart-3: 158 50% 50%;
         --chart-4: 350 70% 62%;

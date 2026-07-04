@@ -86,24 +86,78 @@ onMounted(() => window.addEventListener('keydown', onKeydown));
 onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 </script>
 
+<style scoped>
+.reveal-enter-active {
+    transition:
+        opacity 0.22s ease,
+        transform 0.22s ease;
+}
+
+.reveal-enter-from {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.reveal-leave-active {
+    transition: opacity 0.1s ease;
+}
+
+.reveal-leave-to {
+    opacity: 0;
+}
+
+.card-enter-active,
+.card-leave-active {
+    transition:
+        opacity 0.16s ease,
+        transform 0.16s ease;
+}
+
+.card-enter-from {
+    opacity: 0;
+    transform: translateX(14px);
+}
+
+.card-leave-to {
+    opacity: 0;
+    transform: translateX(-14px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reveal-enter-active,
+    .reveal-leave-active,
+    .card-enter-active,
+    .card-leave-active {
+        transition: none;
+    }
+}
+</style>
+
 <template>
     <Head title="Estudar" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-4">
             <!-- Sessão concluída / nada para revisar -->
-            <div v-if="!current" class="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+            <div v-if="!current" class="flex flex-1 flex-col items-center justify-center gap-4 text-center">
                 <template v-if="done > 0">
-                    <CheckCircle2 class="size-12 text-green-600" />
-                    <h2 class="text-xl font-semibold">Sessão concluída!</h2>
-                    <p class="text-sm text-muted-foreground">Você revisou {{ done }} cartão(ões) hoje. Bis morgen! 🇩🇪</p>
+                    <div class="flex size-16 items-center justify-center rounded-full bg-primary/10 ring-4 ring-[#f0b429]/25">
+                        <CheckCircle2 class="size-8 text-primary" />
+                    </div>
+                    <div class="space-y-1">
+                        <h2 class="text-2xl font-semibold tracking-tight">Sessão concluída</h2>
+                        <p class="text-sm text-muted-foreground">{{ done }} {{ done === 1 ? 'cartão revisado' : 'cartões revisados' }} hoje.</p>
+                    </div>
+                    <p class="text-sm italic text-muted-foreground" lang="de">Bis morgen.</p>
                 </template>
                 <template v-else>
                     <GraduationCap class="size-12 text-muted-foreground" />
-                    <h2 class="text-xl font-semibold">Nada para revisar agora</h2>
-                    <p class="max-w-sm text-sm text-muted-foreground">
-                        Nenhum cartão vencido. Importe novos destaques ou crie cartões para continuar aprendendo.
-                    </p>
+                    <div class="space-y-1">
+                        <h2 class="text-2xl font-semibold tracking-tight">Nada para revisar agora</h2>
+                        <p class="max-w-sm text-sm text-muted-foreground">
+                            Nenhum cartão vencido. Importe novos destaques ou crie cartões para continuar aprendendo.
+                        </p>
+                    </div>
                 </template>
                 <Button as-child variant="outline"><Link :href="route('dashboard')">Voltar ao dashboard</Link></Button>
             </div>
@@ -121,45 +175,62 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
                 </div>
 
                 <!-- Cartão -->
-                <Card class="flex flex-1 cursor-pointer select-none" @click="!revealed && (revealed = true)">
-                    <CardContent class="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
-                        <span v-if="current.book" class="text-xs text-muted-foreground">{{ current.book }}</span>
+                <Transition name="card" mode="out-in">
+                    <Card
+                        :key="current.id"
+                        class="flex flex-1 select-none"
+                        :class="{ 'cursor-pointer': !revealed }"
+                        @click="!revealed && (revealed = true)"
+                    >
+                        <CardContent class="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
+                            <span v-if="current.book" class="text-xs text-muted-foreground">{{ current.book }}</span>
 
-                        <p v-if="front" class="text-3xl font-semibold" lang="de">
-                            <template v-if="front.article"
-                                ><span :class="front.color">{{ front.article }}</span> </template
-                            >{{ front.rest }}
-                        </p>
-
-                        <template v-if="revealed">
-                            <div class="h-px w-24 bg-border" />
-                            <p class="text-xl">{{ current.back }}</p>
-                            <p v-if="current.context" class="max-w-md text-sm italic leading-relaxed text-muted-foreground" lang="de">
-                                „{{ current.context }}“
+                            <p v-if="front" class="text-4xl font-semibold tracking-tight" lang="de">
+                                <template v-if="front.article"
+                                    ><span :class="front.color">{{ front.article }}</span> </template
+                                >{{ front.rest }}
                             </p>
-                        </template>
-                        <p v-else class="text-sm text-muted-foreground">Clique ou pressione espaço para revelar</p>
-                    </CardContent>
-                </Card>
+
+                            <Transition name="reveal" mode="out-in">
+                                <div v-if="revealed" class="flex flex-col items-center gap-6">
+                                    <div class="h-px w-24 bg-border" />
+                                    <p class="text-xl">{{ current.back }}</p>
+                                    <p v-if="current.context" class="max-w-md text-sm italic leading-relaxed text-muted-foreground" lang="de">
+                                        „{{ current.context }}“
+                                    </p>
+                                </div>
+                                <p v-else class="text-sm text-muted-foreground">
+                                    Clique ou pressione <kbd class="rounded border bg-muted px-1.5 py-0.5 text-[11px]">espaço</kbd> para revelar
+                                </p>
+                            </Transition>
+                        </CardContent>
+                    </Card>
+                </Transition>
 
                 <p v-if="error" class="text-center text-sm text-destructive">{{ error }}</p>
 
                 <!-- Botões de resposta -->
-                <div v-if="revealed" class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <Button
-                        v-for="rating in ratings"
-                        :key="rating.value"
-                        variant="outline"
-                        class="h-auto flex-col gap-0.5 py-3"
-                        :class="rating.classes"
-                        :disabled="submitting"
-                        @click="rate(rating.value)"
-                    >
-                        <span class="font-semibold">{{ rating.label }}</span>
-                        <span class="text-xs opacity-70">{{ previewLabel(current.previews[rating.value]) }}</span>
-                    </Button>
-                </div>
-                <p v-if="revealed" class="text-center text-xs text-muted-foreground">Atalhos: 1 = errei, 2 = difícil, 3 = bom, 4 = fácil</p>
+                <Transition name="reveal">
+                    <div v-if="revealed" class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <Button
+                            v-for="rating in ratings"
+                            :key="rating.value"
+                            variant="outline"
+                            class="h-auto flex-col gap-1 py-3 transition-transform active:scale-[0.97]"
+                            :class="rating.classes"
+                            :disabled="submitting"
+                            @click="rate(rating.value)"
+                        >
+                            <span class="flex items-center gap-1.5 font-semibold">
+                                <kbd class="hidden rounded border border-current px-1 text-[10px] font-normal opacity-60 sm:inline">{{
+                                    rating.key
+                                }}</kbd>
+                                {{ rating.label }}
+                            </span>
+                            <span class="text-xs opacity-70">{{ previewLabel(current.previews[rating.value]) }}</span>
+                        </Button>
+                    </div>
+                </Transition>
             </template>
         </div>
     </AppLayout>
