@@ -17,7 +17,7 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
 import type { BreadcrumbItem, NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-vue-next';
+import { BookOpen, GraduationCap, Layers, LayoutGrid, Menu, Search, Upload } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 interface Props {
@@ -43,20 +43,29 @@ const mainNavItems: NavItem[] = [
         href: '/dashboard',
         icon: LayoutGrid,
     },
-];
-
-const rightNavItems: NavItem[] = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: Folder,
+        title: 'Estudar',
+        href: '/estudar',
+        icon: GraduationCap,
     },
     {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits',
+        title: 'Importar',
+        href: '/importar',
+        icon: Upload,
+    },
+    {
+        title: 'Livros',
+        href: '/livros',
         icon: BookOpen,
     },
+    {
+        title: 'Cartões',
+        href: '/cartoes',
+        icon: Layers,
+    },
 ];
+
+const rightNavItems: NavItem[] = [];
 </script>
 
 <template>

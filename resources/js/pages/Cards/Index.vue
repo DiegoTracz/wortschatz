@@ -3,6 +3,7 @@ import CardFormDialog from '@/components/CardFormDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { splitArticle } from '@/lib/german';
 import type { BreadcrumbItem, CardData } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { useDebounceFn } from '@vueuse/core';
@@ -85,7 +86,13 @@ function dueLabel(card: CardData): string {
                     </thead>
                     <tbody>
                         <tr v-for="card in cards.data" :key="card.id" class="border-b last:border-0 hover:bg-muted/30">
-                            <td class="px-4 py-3 font-medium" lang="de">{{ card.front }}</td>
+                            <td class="px-4 py-3 font-medium" lang="de">
+                                <template v-if="splitArticle(card.front).article">
+                                    <span :class="splitArticle(card.front).color">{{ splitArticle(card.front).article }}</span>
+                                    {{ splitArticle(card.front).rest }}
+                                </template>
+                                <template v-else>{{ card.front }}</template>
+                            </td>
                             <td class="max-w-64 truncate px-4 py-3 text-muted-foreground">{{ card.back }}</td>
                             <td class="px-4 py-3">
                                 <span

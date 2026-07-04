@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { postJson } from '@/lib/api';
+import { splitArticle } from '@/lib/german';
 import type { BreadcrumbItem, StudyCard } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
 import { CheckCircle2, GraduationCap } from 'lucide-vue-next';
@@ -20,6 +21,7 @@ const submitting = ref(false);
 const error = ref<string | null>(null);
 
 const current = computed(() => queue.value[0] ?? null);
+const front = computed(() => (current.value ? splitArticle(current.value.front) : null));
 const progress = computed(() => (sessionTotal.value ? Math.round((done.value / sessionTotal.value) * 100) : 0));
 
 const ratings = [
@@ -123,7 +125,11 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
                     <CardContent class="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
                         <span v-if="current.book" class="text-xs text-muted-foreground">{{ current.book }}</span>
 
-                        <p class="text-3xl font-semibold" lang="de">{{ current.front }}</p>
+                        <p v-if="front" class="text-3xl font-semibold" lang="de">
+                            <template v-if="front.article"
+                                ><span :class="front.color">{{ front.article }}</span> </template
+                            >{{ front.rest }}
+                        </p>
 
                         <template v-if="revealed">
                             <div class="h-px w-24 bg-border" />
