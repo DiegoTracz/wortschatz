@@ -45,9 +45,13 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            // Indica ao front que estamos no app desktop (NativePHP), habilitando
+            // recursos nativos como o botão "Sincronizar Kindle".
+            'native' => (bool) config('nativephp-internal.running'),
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'import_result' => $request->session()->get('import_result'),
+                'import_error' => $request->session()->get('import_error'),
             ],
         ]);
     }

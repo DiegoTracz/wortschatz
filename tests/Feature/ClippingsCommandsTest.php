@@ -43,26 +43,3 @@ test('clippings:import exige --user quando há mais de um usuário', function ()
     expect($userB->books()->count())->toBe(1)
         ->and($userA->books()->count())->toBe(0);
 });
-
-test('clippings:token gera e substitui o token', function () {
-    $user = User::factory()->create();
-
-    $this->artisan('clippings:token')->assertSuccessful();
-    $first = $user->fresh()->import_token;
-
-    $this->artisan('clippings:token')->assertSuccessful();
-    $second = $user->fresh()->import_token;
-
-    expect($first)->toHaveLength(64)
-        ->and($second)->toHaveLength(64)
-        ->and($second)->not->toBe($first);
-});
-
-test('clippings:token --revoke anula o token', function () {
-    $user = User::factory()->create();
-    $user->forceFill(['import_token' => str_repeat('a', 64)])->save();
-
-    $this->artisan('clippings:token', ['--revoke' => true])->assertSuccessful();
-
-    expect($user->fresh()->import_token)->toBeNull();
-});

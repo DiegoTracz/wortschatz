@@ -22,6 +22,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('importar', [ImportController::class, 'create'])->name('import.create');
     Route::post('importar', [ImportController::class, 'store'])->name('import.store');
+    Route::post('importar/kindle', [ImportController::class, 'kindle'])->name('import.kindle');
 
     Route::get('livros', [BookController::class, 'index'])->name('books.index');
     Route::get('livros/{book}', [BookController::class, 'show'])->name('books.show');

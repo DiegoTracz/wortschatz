@@ -5,17 +5,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, SharedData } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { BookOpen, CheckCircle2, FileText, LoaderCircle, Upload } from 'lucide-vue-next';
+import { AlertCircle, BookOpen, CheckCircle2, FileText, LoaderCircle, RefreshCw, Upload } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Importar', href: '/importar' }];
 
 const page = usePage<SharedData>();
 const result = computed(() => page.props.flash.import_result);
+const error = computed(() => page.props.flash.import_error);
+const native = computed(() => page.props.native);
 
 const form = useForm({
     file: null as File | null,
 });
+
+// Importação direta do Kindle conectado (só no app desktop).
+const syncForm = useForm({});
+
+function syncKindle() {
+    syncForm.post(route('import.kindle'), { preserveScroll: true });
+}
 
 const fileInput = ref<HTMLInputElement | null>(null);
 const dragging = ref(false);
@@ -61,9 +70,30 @@ function submit() {
                 </CardContent>
             </Card>
 
+            <Card v-if="error" class="border-destructive/40 bg-destructive/5">
+                <CardContent class="flex items-start gap-3 pt-6">
+                    <AlertCircle class="mt-0.5 size-5 shrink-0 text-destructive" />
+                    <p class="text-sm">{{ error }}</p>
+                </CardContent>
+            </Card>
+
+            <Card v-if="native" class="border-primary/40 bg-primary/5">
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2"><RefreshCw class="size-4" /> Sincronizar Kindle</CardTitle>
+                    <CardDescription>Conecte o Kindle pelo cabo USB e importe os destaques direto — sem procurar arquivo.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button class="w-full" :disabled="syncForm.processing" @click="syncKindle">
+                        <LoaderCircle v-if="syncForm.processing" class="size-4 animate-spin" />
+                        <RefreshCw v-else class="size-4" />
+                        Sincronizar Kindle conectado
+                    </Button>
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
-                    <CardTitle>Importar do Kindle</CardTitle>
+                    <CardTitle>{{ native ? 'Ou envie o arquivo manualmente' : 'Importar do Kindle' }}</CardTitle>
                     <CardDescription>Envie o arquivo <strong>My Clippings.txt</strong> com seus destaques e notas.</CardDescription>
                 </CardHeader>
                 <CardContent>

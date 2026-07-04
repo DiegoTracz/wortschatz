@@ -20,9 +20,11 @@ export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    native: boolean;
     flash: {
         success: string | null;
         import_result: { imported: number; skipped: number; books: number } | null;
+        import_error: string | null;
     };
     ziggy: {
         location: string;
