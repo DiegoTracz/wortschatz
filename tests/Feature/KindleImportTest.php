@@ -4,6 +4,10 @@ use App\Models\Book;
 use App\Models\Highlight;
 use App\Models\User;
 use App\Services\KindleDriveLocator;
+use Illuminate\Support\Facades\Http;
+
+// A importação busca capas no Google Books; fake para não sair para a rede.
+beforeEach(fn () => Http::fake(['www.googleapis.com/*' => Http::response(['items' => []])]));
 
 /**
  * Cria um volume falso de Kindle (raiz com documents/My Clippings.txt) num

@@ -8,7 +8,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Book extends Model
 {
-    protected $fillable = ['user_id', 'title', 'author'];
+    protected $fillable = ['user_id', 'title', 'author', 'cover_url', 'cover_fetched_at'];
+
+    protected function casts(): array
+    {
+        return [
+            'cover_fetched_at' => 'datetime',
+        ];
+    }
 
     public function user(): BelongsTo
     {

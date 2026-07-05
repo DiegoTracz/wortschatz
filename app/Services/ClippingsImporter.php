@@ -20,6 +20,8 @@ use Illuminate\Support\Collection;
  */
 class ClippingsImporter
 {
+    public function __construct(private BookCoverFetcher $covers) {}
+
     /**
      * @param  Collection<int, array>  $entries
      * @return array{imported: int, skipped: int, books: int}
@@ -37,6 +39,12 @@ class ClippingsImporter
             );
 
             $books[$book->id] = true;
+
+            // Livro novo → tenta buscar a capa já na importação (falha silenciosa;
+            // marca cover_fetched_at para a biblioteca não repetir a consulta).
+            if ($book->wasRecentlyCreated) {
+                $this->fetchCover($book);
+            }
 
             foreach ($group as $entry) {
                 $entry = $this->normalize($entry);
@@ -57,6 +65,18 @@ class ClippingsImporter
         }
 
         return ['imported' => $imported, 'skipped' => $skipped, 'books' => count($books)];
+    }
+
+    private function fetchCover(Book $book): void
+    {
+        try {
+            $book->forceFill([
+                'cover_url' => $this->covers->fetch($book->title, $book->author),
+                'cover_fetched_at' => now(),
+            ])->save();
+        } catch (\Throwable) {
+            // Sem conexão / erro na API: a biblioteca busca a capa depois sob demanda.
+        }
     }
 
     private function normalize(array $entry): array

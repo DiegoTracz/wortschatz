@@ -4,6 +4,10 @@ use App\Models\Book;
 use App\Models\Highlight;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
+
+// A importação busca capas no Google Books; fake para não sair para a rede.
+beforeEach(fn () => Http::fake(['www.googleapis.com/*' => Http::response(['items' => []])]));
 
 function clippingsFile(): UploadedFile
 {
@@ -34,6 +38,20 @@ test('reimportar o mesmo arquivo não duplica destaques', function () {
     $response->assertSessionHas('import_result', ['imported' => 0, 'skipped' => 2, 'books' => 2]);
 
     expect(Highlight::count())->toBe(2);
+});
+
+test('importar busca a capa do livro no Google Books', function () {
+    Http::fake(['www.googleapis.com/*' => Http::response([
+        'items' => [['volumeInfo' => ['imageLinks' => ['thumbnail' => 'http://books.google.com/books/content?id=abc&edge=curl']]]],
+    ])]);
+
+    $user = User::factory()->create();
+    $this->actingAs($user)->post(route('import.store'), ['file' => clippingsFile()]);
+
+    $book = $user->books()->where('title', 'Der Prozess')->first();
+
+    expect($book->cover_url)->toBe('https://books.google.com/books/content?id=abc')
+        ->and($book->cover_fetched_at)->not->toBeNull();
 });
 
 test('exige um arquivo', function () {

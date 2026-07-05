@@ -14,6 +14,7 @@ const props = defineProps<{
     open: boolean;
     card?: CardData | null;
     highlight?: { id: number; content: string } | null;
+    presetFront?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -37,7 +38,7 @@ watch(
     (open) => {
         if (!open) return;
         form.clearErrors();
-        form.front = props.card?.front ?? '';
+        form.front = props.card?.front ?? props.presetFront ?? '';
         form.back = props.card?.back ?? '';
         form.context = props.card?.context ?? props.highlight?.content ?? '';
         form.highlight_id = props.highlight?.id ?? null;
