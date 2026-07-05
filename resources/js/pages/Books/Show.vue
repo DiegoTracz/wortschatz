@@ -263,9 +263,7 @@ function meta(highlight: HighlightData): string {
             <Card v-for="highlight in filteredHighlights" :key="highlight.id">
                 <CardContent class="space-y-3 pt-6">
                     <p class="whitespace-pre-line leading-relaxed" lang="de">
-                        <StickyNote v-if="highlight.type === 'note'" class="mr-1 inline size-4 align-text-top text-amber-500" />{{
-                            highlight.content
-                        }}
+                        <StickyNote v-if="highlight.type === 'note'" class="mr-1 inline size-4 align-text-top text-grade-2" />{{ highlight.content }}
                     </p>
 
                     <div class="flex flex-wrap items-center justify-between gap-2">

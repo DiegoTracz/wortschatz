@@ -13,6 +13,7 @@ export default {
         extend: {
             fontFamily: {
                 sans: ['Instrument Sans', ...defaultTheme.fontFamily.sans],
+                serif: ['Literata', ...defaultTheme.fontFamily.serif],
             },
             borderRadius: {
                 lg: 'var(--radius)',
@@ -53,6 +54,18 @@ export default {
                 border: 'hsl(var(--border))',
                 input: 'hsl(var(--input))',
                 ring: 'hsl(var(--ring))',
+                // Gênero dos substantivos (der/die/das) — pistas de aprendizado.
+                // Com <alpha-value> para os modificadores de opacidade (/40, /10).
+                der: 'hsl(var(--der) / <alpha-value>)',
+                die: 'hsl(var(--die) / <alpha-value>)',
+                das: 'hsl(var(--das) / <alpha-value>)',
+                // Notas de estudo (errei/difícil/bom/fácil).
+                grade: {
+                    1: 'hsl(var(--grade-1) / <alpha-value>)',
+                    2: 'hsl(var(--grade-2) / <alpha-value>)',
+                    3: 'hsl(var(--grade-3) / <alpha-value>)',
+                    4: 'hsl(var(--grade-4) / <alpha-value>)',
+                },
                 chart: {
                     1: 'hsl(var(--chart-1))',
                     2: 'hsl(var(--chart-2))',

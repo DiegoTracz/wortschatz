@@ -97,7 +97,7 @@ function dueLabel(card: CardData): string {
                             <td class="px-4 py-3">
                                 <span
                                     class="rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="card.is_due ? 'bg-amber-500/15 text-amber-600 dark:text-amber-500' : 'bg-muted text-muted-foreground'"
+                                    :class="card.is_due ? 'bg-grade-2/15 text-grade-2' : 'bg-muted text-muted-foreground'"
                                 >
                                     {{ dueLabel(card) }}
                                 </span>

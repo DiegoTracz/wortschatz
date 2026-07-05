@@ -51,19 +51,16 @@ function submit() {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-4">
-            <Card v-if="result" class="border-green-600/40 bg-green-500/5">
+            <Card v-if="result" class="border-grade-3/40 bg-grade-3/5">
                 <CardContent class="flex items-start gap-3 pt-6">
-                    <CheckCircle2 class="mt-0.5 size-5 shrink-0 text-green-600" />
+                    <CheckCircle2 class="mt-0.5 size-5 shrink-0 text-grade-3" />
                     <div class="space-y-1 text-sm">
                         <p class="font-medium">Importação concluída!</p>
                         <p class="text-muted-foreground">
                             {{ result.imported }} novo(s) destaque(s) em {{ result.books }} livro(s).
                             <template v-if="result.skipped"> {{ result.skipped }} já existiam e foram ignorados.</template>
                         </p>
-                        <Link
-                            :href="route('books.index')"
-                            class="inline-block font-medium text-green-700 underline underline-offset-2 dark:text-green-500"
-                        >
+                        <Link :href="route('books.index')" class="inline-block font-medium text-grade-3 underline underline-offset-2">
                             Ver meus livros →
                         </Link>
                     </div>

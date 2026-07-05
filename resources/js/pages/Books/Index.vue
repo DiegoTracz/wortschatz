@@ -43,16 +43,18 @@ onMounted(async () => {
     }
 });
 
-// Hue estável derivado do título para a capa de fallback (sem imagem).
+// Valor estável derivado do título para variar levemente a "capa de pano".
 function hue(title: string): number {
     let h = 0;
     for (const ch of title) h = (h * 31 + ch.charCodeAt(0)) % 360;
     return h;
 }
 
+// Capa-fallback em tom neutro e quente (cor de pano/e-ink), não mais colorida —
+// só a claridade varia por título para os livros não ficarem idênticos.
 function fallbackStyle(title: string) {
-    const h = hue(title);
-    return { background: `linear-gradient(150deg, hsl(${h} 48% 44%), hsl(${(h + 45) % 360} 52% 26%))` };
+    const l = 26 + (hue(title) % 14);
+    return { background: `linear-gradient(160deg, hsl(32 10% ${l + 5}%), hsl(28 8% ${l - 4}%))` };
 }
 
 function formatDate(date: string | null): string | null {
@@ -111,7 +113,7 @@ function formatDate(date: string | null): string | null {
                             <div v-else class="flex size-full flex-col justify-between p-3 text-white" :style="fallbackStyle(book.title)">
                                 <BookOpen class="size-5 opacity-70" />
                                 <div>
-                                    <p class="line-clamp-4 text-sm font-semibold leading-snug drop-shadow-sm">{{ book.title }}</p>
+                                    <p class="line-clamp-4 font-serif text-sm font-semibold leading-snug drop-shadow-sm">{{ book.title }}</p>
                                     <p v-if="book.author" class="mt-1 line-clamp-1 text-[11px] opacity-80">{{ book.author }}</p>
                                 </div>
                             </div>
@@ -128,7 +130,7 @@ function formatDate(date: string | null): string | null {
                         </div>
 
                         <div class="min-w-0">
-                            <p class="line-clamp-2 text-sm font-medium leading-snug group-hover:text-primary">{{ book.title }}</p>
+                            <p class="line-clamp-2 font-serif text-sm font-medium leading-snug group-hover:text-primary">{{ book.title }}</p>
                             <p class="truncate text-xs text-muted-foreground">{{ book.author ?? 'Autor desconhecido' }}</p>
                             <p v-if="formatDate(book.last_highlight_at)" class="mt-0.5 text-[11px] text-muted-foreground/70">
                                 {{ formatDate(book.last_highlight_at) }}

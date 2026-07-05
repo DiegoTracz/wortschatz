@@ -84,9 +84,7 @@ function when(value: string): string {
             <!-- Estado da chave -->
             <div
                 class="flex items-center gap-2 rounded-md border p-3 text-sm"
-                :class="
-                    configured ? 'border-green-500/30 text-green-700 dark:text-green-400' : 'border-amber-500/30 text-amber-700 dark:text-amber-500'
-                "
+                :class="configured ? 'border-grade-3/30 text-grade-3' : 'border-grade-2/30 text-grade-2'"
             >
                 <CheckCircle2 v-if="configured" class="size-4 shrink-0" />
                 <XCircle v-else class="size-4 shrink-0" />

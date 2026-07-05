@@ -27,9 +27,9 @@ const features = [
 ];
 
 const articleExamples = [
-    { article: 'der', word: 'Hund', color: 'text-sky-600 dark:text-sky-400' },
-    { article: 'die', word: 'Zeit', color: 'text-rose-600 dark:text-rose-400' },
-    { article: 'das', word: 'Buch', color: 'text-emerald-600 dark:text-emerald-400' },
+    { article: 'der', word: 'Hund', color: 'text-der' },
+    { article: 'die', word: 'Zeit', color: 'text-die' },
+    { article: 'das', word: 'Buch', color: 'text-das' },
 ];
 </script>
 

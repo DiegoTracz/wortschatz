@@ -1,11 +1,12 @@
 /**
  * Código de cores pedagógico para os gêneros do alemão, parte da identidade
- * visual do app: der = azul, die = rosa, das = verde.
+ * visual do app: der = azul, die = rosa, das = verde — em tons dessaturados de
+ * e-ink (tokens --der/--die/--das, que já se ajustam ao modo claro/escuro).
  */
 const ARTICLE_COLORS: Record<string, string> = {
-    der: 'text-sky-600 dark:text-sky-400',
-    die: 'text-rose-600 dark:text-rose-400',
-    das: 'text-emerald-600 dark:text-emerald-400',
+    der: 'text-der',
+    die: 'text-die',
+    das: 'text-das',
 };
 
 export interface ArticleParts {

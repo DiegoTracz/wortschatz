@@ -25,10 +25,10 @@ const front = computed(() => (current.value ? splitArticle(current.value.front) 
 const progress = computed(() => (sessionTotal.value ? Math.round((done.value / sessionTotal.value) * 100) : 0));
 
 const ratings = [
-    { value: 1, label: 'Errei', key: '1', classes: 'border-red-500/40 text-red-600 hover:bg-red-500/10 dark:text-red-400' },
-    { value: 2, label: 'Difícil', key: '2', classes: 'border-amber-500/40 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400' },
-    { value: 3, label: 'Bom', key: '3', classes: 'border-green-500/40 text-green-600 hover:bg-green-500/10 dark:text-green-400' },
-    { value: 4, label: 'Fácil', key: '4', classes: 'border-sky-500/40 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400' },
+    { value: 1, label: 'Errei', key: '1', classes: 'border-grade-1/40 text-grade-1 hover:bg-grade-1/10' },
+    { value: 2, label: 'Difícil', key: '2', classes: 'border-grade-2/40 text-grade-2 hover:bg-grade-2/10' },
+    { value: 3, label: 'Bom', key: '3', classes: 'border-grade-3/40 text-grade-3 hover:bg-grade-3/10' },
+    { value: 4, label: 'Fácil', key: '4', classes: 'border-grade-4/40 text-grade-4 hover:bg-grade-4/10' },
 ];
 
 function previewLabel(days: number): string {
@@ -185,7 +185,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
                         <CardContent class="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
                             <span v-if="current.book" class="text-xs text-muted-foreground">{{ current.book }}</span>
 
-                            <p v-if="front" class="text-4xl font-semibold tracking-tight" lang="de">
+                            <p v-if="front" class="font-serif text-4xl font-semibold tracking-tight" lang="de">
                                 <template v-if="front.article"
                                     ><span :class="front.color">{{ front.article }}</span
                                     >{{ ' ' }}</template
