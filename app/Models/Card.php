@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Card extends Model
 {
     protected $fillable = [
-        'user_id', 'highlight_id', 'front', 'back', 'context',
+        'user_id', 'highlight_id', 'front', 'back', 'context', 'mnemonic',
         'stability', 'difficulty', 'interval_days', 'repetitions', 'lapses',
         'last_reviewed_at', 'due_at',
     ];

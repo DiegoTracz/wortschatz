@@ -187,16 +187,23 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 
                             <p v-if="front" class="text-4xl font-semibold tracking-tight" lang="de">
                                 <template v-if="front.article"
-                                    ><span :class="front.color">{{ front.article }}</span> </template
+                                    ><span :class="front.color">{{ front.article }}</span
+                                    >{{ ' ' }}</template
                                 >{{ front.rest }}
                             </p>
 
                             <Transition name="reveal" mode="out-in">
                                 <div v-if="revealed" class="flex flex-col items-center gap-6">
                                     <div class="h-px w-24 bg-border" />
-                                    <p class="text-xl">{{ current.back }}</p>
+                                    <p class="whitespace-pre-line text-xl">{{ current.back }}</p>
                                     <p v-if="current.context" class="max-w-md text-sm italic leading-relaxed text-muted-foreground" lang="de">
                                         „{{ current.context }}“
+                                    </p>
+                                    <p
+                                        v-if="current.mnemonic"
+                                        class="max-w-md rounded-md bg-primary/5 px-3 py-2 text-sm leading-relaxed text-muted-foreground"
+                                    >
+                                        🧠 {{ current.mnemonic }}
                                     </p>
                                 </div>
                                 <p v-else class="text-sm text-muted-foreground">

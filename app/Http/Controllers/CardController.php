@@ -26,6 +26,7 @@ class CardController extends Controller
                 'front' => $card->front,
                 'back' => $card->back,
                 'context' => $card->context,
+                'mnemonic' => $card->mnemonic,
                 'interval_days' => $card->interval_days,
                 'repetitions' => $card->repetitions,
                 'due_at' => $card->due_at->toDateString(),
@@ -42,10 +43,11 @@ class CardController extends Controller
     {
         $data = $request->validate([
             'front' => ['required', 'string', 'max:500'],
-            'back' => ['required', 'string', 'max:1000'],
+            'back' => ['required', 'string', 'max:2000'],
             'context' => ['nullable', 'string', 'max:2000'],
+            'mnemonic' => ['nullable', 'string', 'max:1000'],
             'highlight_id' => ['nullable', 'integer', 'exists:highlights,id'],
-        ], [], ['front' => 'frente', 'back' => 'verso', 'context' => 'contexto']);
+        ], [], ['front' => 'frente', 'back' => 'verso', 'context' => 'contexto', 'mnemonic' => 'Eselsbrücke']);
 
         if ($data['highlight_id'] ?? null) {
             $highlight = Highlight::with('book')->findOrFail($data['highlight_id']);
@@ -63,9 +65,10 @@ class CardController extends Controller
 
         $data = $request->validate([
             'front' => ['required', 'string', 'max:500'],
-            'back' => ['required', 'string', 'max:1000'],
+            'back' => ['required', 'string', 'max:2000'],
             'context' => ['nullable', 'string', 'max:2000'],
-        ], [], ['front' => 'frente', 'back' => 'verso', 'context' => 'contexto']);
+            'mnemonic' => ['nullable', 'string', 'max:1000'],
+        ], [], ['front' => 'frente', 'back' => 'verso', 'context' => 'contexto', 'mnemonic' => 'Eselsbrücke']);
 
         $card->update($data);
 

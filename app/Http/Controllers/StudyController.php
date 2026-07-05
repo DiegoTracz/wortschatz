@@ -60,6 +60,7 @@ class StudyController extends Controller
             'front' => $card->front,
             'back' => $card->back,
             'context' => $card->context,
+            'mnemonic' => $card->mnemonic,
             'book' => $card->highlight?->book?->title,
             'repetitions' => $card->repetitions,
             'interval_days' => $card->interval_days,

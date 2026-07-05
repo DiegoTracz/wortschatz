@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\AiController;
 use App\Http\Controllers\ArticleDetectionController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\BookCoverController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EnrichmentController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\StudyController;
 use App\Http\Controllers\TranslationController;
@@ -37,6 +39,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('traduzir', TranslationController::class)->name('translate');
     Route::post('artigo', ArticleDetectionController::class)->name('article.detect');
+    Route::post('enriquecer', EnrichmentController::class)->name('enrich');
+
+    Route::get('ia', [AiController::class, 'edit'])->name('ai.edit');
+    Route::patch('ia', [AiController::class, 'update'])->name('ai.update');
 });
 
 require __DIR__.'/settings.php';

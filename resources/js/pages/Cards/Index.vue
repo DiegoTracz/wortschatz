@@ -88,8 +88,8 @@ function dueLabel(card: CardData): string {
                         <tr v-for="card in cards.data" :key="card.id" class="border-b last:border-0 hover:bg-muted/30">
                             <td class="px-4 py-3 font-medium" lang="de">
                                 <template v-if="splitArticle(card.front).article">
-                                    <span :class="splitArticle(card.front).color">{{ splitArticle(card.front).article }}</span>
-                                    {{ splitArticle(card.front).rest }}
+                                    <span :class="splitArticle(card.front).color">{{ splitArticle(card.front).article }}</span
+                                    >{{ ' ' }}{{ splitArticle(card.front).rest }}
                                 </template>
                                 <template v-else>{{ card.front }}</template>
                             </td>

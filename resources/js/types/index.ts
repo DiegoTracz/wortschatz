@@ -55,6 +55,7 @@ export interface CardData {
     front: string;
     back: string;
     context: string | null;
+    mnemonic: string | null;
     interval_days: number;
     repetitions: number;
     due_at: string;
@@ -66,6 +67,7 @@ export interface StudyCard {
     front: string;
     back: string;
     context: string | null;
+    mnemonic: string | null;
     book: string | null;
     repetitions: number;
     interval_days: number;

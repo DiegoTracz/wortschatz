@@ -32,6 +32,11 @@ return [
         'email' => env('MYMEMORY_EMAIL'),
     ],
 
+    'openai' => [
+        // Chave da OpenAI. A variável histórica no .env é OPEN_IA_TOKEN.
+        'token' => env('OPEN_IA_TOKEN', env('OPENAI_API_KEY')),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

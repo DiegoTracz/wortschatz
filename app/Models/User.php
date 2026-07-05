@@ -29,6 +29,11 @@ class User extends Authenticatable
         return $this->hasMany(Review::class);
     }
 
+    public function aiUsages(): HasMany
+    {
+        return $this->hasMany(AiUsage::class);
+    }
+
     /**
      * The attributes that are mass assignable.
      *
@@ -38,6 +43,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'openai_model',
     ];
 
     /**
@@ -48,6 +54,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        // Nunca serializar a chave da OpenAI (o HandleInertiaRequests manda o user ao front).
+        'openai_api_key',
     ];
 
     /**
@@ -60,6 +68,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'openai_api_key' => 'encrypted',
         ];
     }
 }

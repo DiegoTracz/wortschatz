@@ -5,9 +5,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { postJson } from '@/lib/api';
+import { splitArticle } from '@/lib/german';
 import type { CardData } from '@/types';
 import { useForm } from '@inertiajs/vue3';
-import { Languages, LoaderCircle } from 'lucide-vue-next';
+import { Languages, LoaderCircle, Sparkles } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -21,17 +22,39 @@ const emit = defineEmits<{
     (e: 'update:open', value: boolean): void;
 }>();
 
+interface EnrichUsage {
+    model: string;
+    total_tokens: number;
+    cost: number;
+}
+
+interface EnrichResult {
+    article: string;
+    meanings: string;
+    examples: string[];
+    mnemonic: string;
+    usage: EnrichUsage;
+}
+
 const form = useForm({
     front: '',
     back: '',
     context: '' as string | null,
+    mnemonic: '' as string | null,
     highlight_id: null as number | null,
 });
+
+// Eselsbrücke é opcional: o usuário decide se entra no cartão.
+const includeMnemonic = ref(false);
 
 const translating = ref(false);
 const translationError = ref<string | null>(null);
 const detectingArticle = ref(false);
 const articleNote = ref<string | null>(null);
+
+const enriching = ref(false);
+const enrichError = ref<string | null>(null);
+const enrichUsage = ref<EnrichUsage | null>(null);
 
 watch(
     () => props.open,
@@ -41,9 +64,13 @@ watch(
         form.front = props.card?.front ?? props.presetFront ?? '';
         form.back = props.card?.back ?? '';
         form.context = props.card?.context ?? props.highlight?.content ?? '';
+        form.mnemonic = props.card?.mnemonic ?? '';
         form.highlight_id = props.highlight?.id ?? null;
+        includeMnemonic.value = !!props.card?.mnemonic;
         translationError.value = null;
         articleNote.value = null;
+        enrichError.value = null;
+        enrichUsage.value = null;
     },
 );
 
@@ -55,9 +82,30 @@ const words = computed(() =>
         .filter((word) => word.length > 1),
 );
 
+const usageLabel = computed(() => {
+    const usage = enrichUsage.value;
+    if (!usage) return null;
+    return `Gerado com ${usage.model} · ${usage.total_tokens} tokens · US$ ${usage.cost.toFixed(5)}`;
+});
+
 function addWord(word: string) {
     form.front = form.front.trim() ? `${form.front.trim()} ${word}` : word;
     detectArticle();
+}
+
+// Remove a marcação <b> dos exemplos ao gravar no verso (texto puro no estudo).
+function stripTags(text: string): string {
+    return text.replace(/<\/?[^>]+>/g, '');
+}
+
+// Prefixa o artigo (der/die/das) na frente quando ainda não houver e capitaliza
+// o substantivo (alemão exige inicial maiúscula), para o color-coding de gênero
+// aparecer certo no cartão.
+function applyArticle(article: string) {
+    if (!article) return;
+    if (splitArticle(form.front).article) return;
+    const word = form.front.trim();
+    form.front = `${article} ${word.charAt(0).toUpperCase()}${word.slice(1)}`;
 }
 
 /**
@@ -87,6 +135,7 @@ async function detectArticle() {
     }
 }
 
+/** Tradução simples e gratuita (MyMemory). */
 async function translate() {
     if (!form.front.trim() || translating.value) return;
 
@@ -103,11 +152,52 @@ async function translate() {
     }
 }
 
+/**
+ * Tradução rica com a OpenAI: preenche o verso com os significados e a(s)
+ * frase(s) de exemplo juntas, aplica o gênero na frente e, se marcado, gera a
+ * Eselsbrücke no campo próprio.
+ */
+async function enrich() {
+    if (!form.front.trim() || enriching.value) return;
+
+    enriching.value = true;
+    enrichError.value = null;
+
+    try {
+        const result = await postJson<EnrichResult>(route('enrich'), { word: form.front, context: form.context });
+
+        applyArticle(result.article);
+
+        const parts: string[] = [];
+        if (result.meanings) parts.push(result.meanings);
+        const examples = result.examples.map(stripTags).filter(Boolean);
+        if (examples.length) parts.push(examples.join('\n'));
+        if (parts.length) form.back = parts.join('\n\n');
+
+        if (result.mnemonic) {
+            form.mnemonic = result.mnemonic;
+            includeMnemonic.value = true;
+        }
+
+        enrichUsage.value = result.usage;
+    } catch (error) {
+        enrichError.value = error instanceof Error ? error.message : 'Falha ao gerar com IA.';
+    } finally {
+        enriching.value = false;
+    }
+}
+
 function submit() {
     const options = {
         preserveScroll: true,
         onSuccess: () => emit('update:open', false),
     };
+
+    // Só envia a Eselsbrücke quando marcada para entrar no cartão.
+    form.transform((data) => ({
+        ...data,
+        mnemonic: includeMnemonic.value ? data.mnemonic : null,
+    }));
 
     if (props.card) {
         form.put(route('cards.update', props.card.id), options);
@@ -152,16 +242,31 @@ function submit() {
                 </div>
 
                 <div class="space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <Label for="card-back">Verso (tradução / significado)</Label>
-                        <Button type="button" variant="outline" size="sm" :disabled="translating || !form.front.trim()" @click="translate">
-                            <LoaderCircle v-if="translating" class="size-4 animate-spin" />
-                            <Languages v-else class="size-4" />
-                            Traduzir
-                        </Button>
+                    <div class="flex items-center justify-between gap-2">
+                        <Label for="card-back">Verso (tradução + exemplo)</Label>
+                        <div class="flex gap-1.5">
+                            <Button type="button" variant="outline" size="sm" :disabled="translating || !form.front.trim()" @click="translate">
+                                <LoaderCircle v-if="translating" class="size-4 animate-spin" />
+                                <Languages v-else class="size-4" />
+                                Traduzir
+                            </Button>
+                            <Button type="button" variant="outline" size="sm" :disabled="enriching || !form.front.trim()" @click="enrich">
+                                <LoaderCircle v-if="enriching" class="size-4 animate-spin" />
+                                <Sparkles v-else class="size-4" />
+                                IA
+                            </Button>
+                        </div>
                     </div>
-                    <Input id="card-back" v-model="form.back" placeholder="a vontade de viajar, saudade de lugares distantes" autocomplete="off" />
+                    <textarea
+                        id="card-back"
+                        v-model="form.back"
+                        rows="4"
+                        placeholder="a vontade de viajar, saudade de lugares distantes"
+                        class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:text-sm"
+                    />
                     <p v-if="translationError" class="text-sm text-destructive">{{ translationError }}</p>
+                    <p v-if="enrichError" class="text-xs text-destructive">{{ enrichError }}</p>
+                    <p v-else-if="usageLabel" class="text-xs text-muted-foreground">{{ usageLabel }}</p>
                     <InputError :message="form.errors.back" />
                 </div>
 
@@ -170,10 +275,25 @@ function submit() {
                     <textarea
                         id="card-context"
                         v-model="form.context"
-                        rows="3"
+                        rows="2"
                         class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:text-sm"
                     />
                     <InputError :message="form.errors.context" />
+                </div>
+
+                <div class="space-y-1.5 rounded-md border border-input bg-muted/30 p-3">
+                    <label class="flex items-center gap-2 text-sm font-medium">
+                        <input v-model="includeMnemonic" type="checkbox" class="size-4 rounded border-input accent-primary" />
+                        🧠 Incluir Eselsbrücke (mnemônico) no cartão
+                    </label>
+                    <textarea
+                        id="card-mnemonic"
+                        v-model="form.mnemonic"
+                        rows="2"
+                        placeholder="Uma associação para lembrar a palavra e o gênero…"
+                        class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:text-sm"
+                    />
+                    <InputError :message="form.errors.mnemonic" />
                 </div>
 
                 <DialogFooter>
