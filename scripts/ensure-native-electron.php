@@ -21,6 +21,17 @@ if (! is_dir($jsDir)) {
     exit(0);
 }
 
+// O driver depende de `menubar`, cujo peer é electron <33; com o pin em 35 o
+// `npm install` que o `native:build` roda aqui quebra com ERESOLVE. Ignorar os
+// peer deps (comportamento do npm 6) resolve o conflito — o app já roda com
+// Electron 35 em dev. Vive no vendor (resetado no composer install), então é
+// reaplicado aqui a cada prebuild.
+$npmrc = $jsDir.'/.npmrc';
+if (! is_file($npmrc) || ! str_contains((string) file_get_contents($npmrc), 'legacy-peer-deps')) {
+    file_put_contents($npmrc, "legacy-peer-deps=true\n", FILE_APPEND);
+    echo "[native-electron] .npmrc: legacy-peer-deps=true aplicado.\n";
+}
+
 if (trim((string) shell_exec("npm --version 2>{$devNull}")) === '') {
     fwrite(STDERR, "[native-electron] npm não encontrado; pulei o ajuste do Electron.\n");
     exit(0);
