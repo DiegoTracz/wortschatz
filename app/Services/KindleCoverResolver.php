@@ -18,28 +18,33 @@ use Illuminate\Support\Facades\Storage;
  */
 class KindleCoverResolver
 {
+    public function __construct(private KfxCoverExtractor $kfx) {}
+
     /**
-     * Copia a miniatura do Kindle para o storage do app e preenche `cover_url`
-     * dos livros do usuário que ainda não têm capa. Devolve quantos casaram.
+     * Preenche `cover_url` dos livros do usuário que ainda não têm capa, usando
+     * o Kindle conectado: a miniatura pronta (livros comprados na Amazon) quando
+     * existe e, senão, a capa embutida no `.kfx` (cobre os sideloaded). Devolve
+     * quantos casaram.
      */
     public function syncCovers(User $user, string $kindleRoot): int
     {
-        $index = $this->index($kindleRoot);
+        $thumbnails = $this->index($kindleRoot);
+        $kfxFiles = $this->kfxIndex($kindleRoot);
 
-        if ($index === []) {
+        if ($thumbnails === [] && $kfxFiles === []) {
             return 0;
         }
 
         $applied = 0;
 
         foreach ($user->books()->whereNull('cover_url')->get() as $book) {
-            $thumbnail = $this->coverFor($book->title, $index);
+            $jpeg = $this->jpegFor($book->title, $thumbnails, $kfxFiles);
 
-            if ($thumbnail === null || ! is_file($thumbnail)) {
+            if ($jpeg === null) {
                 continue;
             }
 
-            Storage::disk('local')->put("covers/{$book->id}.jpg", (string) file_get_contents($thumbnail));
+            Storage::disk('local')->put("covers/{$book->id}.jpg", $jpeg);
 
             $book->forceFill([
                 'cover_url' => route('books.cover.image', $book, absolute: false),
@@ -50,6 +55,30 @@ class KindleCoverResolver
         }
 
         return $applied;
+    }
+
+    /**
+     * Bytes JPEG da capa de um título: miniatura Amazon (certeira) e, na falta,
+     * a capa extraída do `.kfx`.
+     *
+     * @param  array<string, string>  $thumbnails
+     * @param  array<string, string>  $kfxFiles
+     */
+    private function jpegFor(string $title, array $thumbnails, array $kfxFiles): ?string
+    {
+        $thumbnail = $this->coverFor($title, $thumbnails);
+
+        if ($thumbnail !== null && is_file($thumbnail)) {
+            return (string) file_get_contents($thumbnail);
+        }
+
+        $kfxFile = $this->coverFor($title, $kfxFiles);
+
+        if ($kfxFile !== null && is_file($kfxFile)) {
+            return $this->kfx->extract($kfxFile);
+        }
+
+        return null;
     }
 
     /**
@@ -88,6 +117,36 @@ class KindleCoverResolver
 
             if ($key !== '' && ! isset($index[$key])) {
                 $index[$key] = $thumbnail;
+            }
+        }
+
+        return $index;
+    }
+
+    /**
+     * Índice título-normalizado → caminho do `.kfx` do livro. O nome do arquivo
+     * começa com o título e termina com o content-id (hash/ASIN), que removemos.
+     *
+     * @return array<string, string>
+     */
+    public function kfxIndex(string $kindleRoot): array
+    {
+        $root = rtrim($kindleRoot, '/\\');
+        $index = [];
+
+        foreach (glob($root.'/documents/Downloads/Items*/*.kfx') ?: [] as $file) {
+            $base = basename($file, '.kfx');
+
+            if ($base === 'metadata') {
+                continue;
+            }
+
+            // "<Título>_<CONTENTID>" → tira o id (alfanumérico de 10+ chars no fim).
+            $title = preg_replace('/_[A-Za-z0-9]{10,}$/', '', $base);
+            $key = $this->normalize((string) $title);
+
+            if ($key !== '' && ! isset($index[$key])) {
+                $index[$key] = $file;
             }
         }
 

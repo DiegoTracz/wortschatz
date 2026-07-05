@@ -71,6 +71,36 @@ test('syncCovers ignora livro sem pasta no Kindle ou sem miniatura', function ()
         ->and($numeroDiferente->refresh()->cover_url)->toBeNull();
 });
 
+test('syncCovers extrai a capa do .kfx quando não há miniatura Amazon', function () {
+    $root = kindleCoverVolume();
+    $cover = minimalJpeg(400, 600);
+    // Livro sideloaded: .kfx com capa embutida e sem miniatura no system/thumbnails.
+    file_put_contents($root.'/documents/Downloads/Items01/Tintenherz_ABCDEF0123456789.kfx', 'KFX'.$cover);
+
+    $user = User::factory()->create();
+    $book = Book::create(['user_id' => $user->id, 'title' => 'Tintenherz']);
+
+    $applied = app(KindleCoverResolver::class)->syncCovers($user, $root);
+
+    expect($applied)->toBe(1)
+        ->and($book->refresh()->cover_url)->toBe('/livros/'.$book->id.'/capa.jpg')
+        ->and(Storage::disk('local')->get("covers/{$book->id}.jpg"))->toBe($cover);
+});
+
+test('a miniatura Amazon tem prioridade sobre a extração do .kfx', function () {
+    $root = kindleCoverVolume();
+    kindleCoverAddBook($root, 'Tintenherz', 'B01AAAAAAA'); // miniatura pronta
+    file_put_contents($root.'/documents/Downloads/Items01/Tintenherz_ABCDEF0123456789.kfx', 'KFX'.minimalJpeg(400, 600));
+
+    $user = User::factory()->create();
+    $book = Book::create(['user_id' => $user->id, 'title' => 'Tintenherz']);
+
+    app(KindleCoverResolver::class)->syncCovers($user, $root);
+
+    // Vem da miniatura (conteúdo "JPG-<ASIN>"), não do KFX.
+    expect(Storage::disk('local')->get("covers/{$book->id}.jpg"))->toBe('JPG-B01AAAAAAA');
+});
+
 test('syncCovers não sobrescreve capa já existente', function () {
     $root = kindleCoverVolume();
     kindleCoverAddBook($root, 'Tintenherz', 'B01AAAAAAA');
