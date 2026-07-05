@@ -6,7 +6,7 @@ import { postJson } from '@/lib/api';
 import { splitArticle } from '@/lib/german';
 import type { BreadcrumbItem, StudyCard } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { CheckCircle2, GraduationCap } from 'lucide-vue-next';
+import { Brain, CheckCircle2, GraduationCap } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 const props = defineProps<{ cards: StudyCard[] }>();
@@ -203,7 +203,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
                                         v-if="current.mnemonic"
                                         class="max-w-md rounded-md bg-primary/5 px-3 py-2 text-sm leading-relaxed text-muted-foreground"
                                     >
-                                        🧠 {{ current.mnemonic }}
+                                        <Brain class="mr-1.5 inline size-4 shrink-0 align-text-top" />{{ current.mnemonic }}
                                     </p>
                                 </div>
                                 <p v-else class="text-sm text-muted-foreground">

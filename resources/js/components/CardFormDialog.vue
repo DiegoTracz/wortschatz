@@ -8,7 +8,7 @@ import { postJson } from '@/lib/api';
 import { splitArticle } from '@/lib/german';
 import type { CardData } from '@/types';
 import { useForm } from '@inertiajs/vue3';
-import { Languages, LoaderCircle, Sparkles } from 'lucide-vue-next';
+import { Brain, Languages, LoaderCircle, Sparkles } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -284,7 +284,8 @@ function submit() {
                 <div class="space-y-1.5 rounded-md border border-input bg-muted/30 p-3">
                     <label class="flex items-center gap-2 text-sm font-medium">
                         <input v-model="includeMnemonic" type="checkbox" class="size-4 rounded border-input accent-primary" />
-                        🧠 Incluir Eselsbrücke (mnemônico) no cartão
+                        <Brain class="size-4 shrink-0 text-muted-foreground" />
+                        Incluir Eselsbrücke (mnemônico) no cartão
                     </label>
                     <textarea
                         id="card-mnemonic"
