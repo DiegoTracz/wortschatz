@@ -21,6 +21,35 @@ php artisan serve                         # dev server (+ npm run dev em outro t
 - **Os testes exigem assets buildados**: sem `npm run build` ao menos uma vez, toda página Inertia devolve 500 ("Vite manifest not found") nos testes.
 - Banco é SQLite (`database/database.sqlite`); Sail está instalado sem serviços extras (`compose.yaml`) — Docker é opcional.
 
+## Ferramentas no Windows (LEIA se `php`/`composer`/`node` "não existir")
+
+O ambiente é **Windows nativo** (migração NativePHP, ver `NATIVEPHP-MIGRATION.md`). As
+ferramentas **estão instaladas** e no PATH **persistente do usuário**, mas um terminal/sessão
+aberto *antes* da instalação herda um PATH velho e não as acha. **Nunca conclua que "PHP não
+está instalado"** — só falta o PATH. Caminhos:
+
+- **PHP 8.4**: `C:\Users\Diego Tracz\AppData\Local\Programs\php\php.exe` (`php.ini` com sqlite/mbstring/curl/openssl/zip/intl/fileinfo)
+- **Composer 2**: mesma pasta — `composer.phar` + `composer.bat`
+- **Node/npm**: `C:\Program Files\nodejs`
+
+**Como rodar (use PowerShell — no Git Bash o `php` pode não aparecer).** Prefixe o PATH no
+início de cada comando da sessão:
+
+```powershell
+$env:Path = "$env:LOCALAPPDATA\Programs\php;C:\Program Files\nodejs;$env:Path"
+php artisan test        # agora funciona; idem pint/pest/migrate
+composer install        # (ou: php "$env:LOCALAPPDATA\Programs\php\composer.phar" ...)
+```
+
+**Subir o app desktop em dev:** `.\dev.ps1` (na raiz — já garante o PATH e roda
+`composer native:dev`, que sobe Electron + Vite juntos). Feche a janela ou Ctrl+C para parar.
+
+Comandos de rede (`composer install/require`, `npm install`, `native:serve/build`) podem exigir
+`dangerouslyDisableSandbox: true` na chamada do tool.
+
+**Correção definitiva (uma vez):** reiniciar o Claude Code / VS Code — aí as sessões novas
+herdam o PATH do usuário nativamente e o prefixo acima deixa de ser necessário.
+
 ## Arquitetura
 
 Laravel 12 + Inertia 2 + Vue 3 (TypeScript), a partir do starter kit oficial de Vue: componentes shadcn-vue em `resources/js/components/ui/`, páginas em `resources/js/pages/` (minúsculo — `config/inertia.php` foi ajustado para isso; `assertInertia` depende desse path), Ziggy expõe `route()` global no front.
