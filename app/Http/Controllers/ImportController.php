@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\ClippingsImporter;
 use App\Services\KindleClippingsParser;
+use App\Services\KindleCoverResolver;
 use App\Services\KindleDriveLocator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,7 +37,7 @@ class ImportController extends Controller
      * conectado por USB, sem upload. Reusa parser + importer; dispara uma
      * notificação nativa com o resultado.
      */
-    public function kindle(Request $request, KindleDriveLocator $locator, KindleClippingsParser $parser, ClippingsImporter $importer): RedirectResponse
+    public function kindle(Request $request, KindleDriveLocator $locator, KindleClippingsParser $parser, ClippingsImporter $importer, KindleCoverResolver $covers): RedirectResponse
     {
         $path = $locator->locate();
 
@@ -50,6 +51,10 @@ class ImportController extends Controller
         $entries = $parser->parse((string) file_get_contents($path));
 
         $result = $importer->import($request->user(), $entries);
+
+        // Com o Kindle à mão, pega as capas localmente (a raiz do volume é dois
+        // níveis acima do My Clippings.txt: <raiz>/documents/My Clippings.txt).
+        $covers->syncCovers($request->user(), dirname($path, 2));
 
         $this->notifyResult($result);
 

@@ -4,6 +4,7 @@ use App\Http\Controllers\AiController;
 use App\Http\Controllers\ArticleDetectionController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\BookCoverController;
+use App\Http\Controllers\BookCoverImageController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnrichmentController;
@@ -29,6 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('livros', [BookController::class, 'index'])->name('books.index');
     Route::post('livros/{book}/capa', BookCoverController::class)->name('books.cover');
+    Route::get('livros/{book}/capa.jpg', BookCoverImageController::class)->name('books.cover.image');
     Route::get('livros/{book}', [BookController::class, 'show'])->name('books.show');
     Route::delete('livros/{book}', [BookController::class, 'destroy'])->name('books.destroy');
 
