@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Highlight extends Model
 {
-    protected $fillable = ['book_id', 'type', 'content', 'location', 'page', 'highlighted_at', 'hash'];
+    protected $fillable = ['book_id', 'type', 'content', 'location', 'page', 'anchor', 'highlighted_at', 'hash'];
 
     /**
      * Hash de deduplicação, único por livro. Normaliza as diferenças entre as
@@ -32,6 +32,7 @@ class Highlight extends Model
     {
         return [
             'highlighted_at' => 'datetime',
+            'anchor' => 'array',
         ];
     }
 

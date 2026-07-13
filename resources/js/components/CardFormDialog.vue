@@ -16,6 +16,9 @@ const props = defineProps<{
     card?: CardData | null;
     highlight?: { id: number; content: string } | null;
     presetFront?: string | null;
+    // No leitor de PDF, preserva o componente da página ao salvar (não perde a
+    // página renderizada / o scroll). Nos demais usos, recarrega normalmente.
+    preserveState?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -190,6 +193,7 @@ async function enrich() {
 function submit() {
     const options = {
         preserveScroll: true,
+        preserveState: props.preserveState || undefined,
         onSuccess: () => emit('update:open', false),
     };
 

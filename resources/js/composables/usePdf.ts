@@ -1,0 +1,124 @@
+import type { PageViewport, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
+import { ref, shallowRef } from 'vue';
+
+/**
+ * Carrega e renderiza um PDF com PDF.js (canvas + camada de texto selecionável).
+ * O worker é empacotado localmente pelo Vite (`?url`), sem CDN — requisito do
+ * app desktop (Electron/NativePHP roda offline e bloqueia fetch remoto).
+ *
+ * As coordenadas dos destaques são guardadas em espaço PDF (independentes de
+ * zoom) via `viewport.convertToPdfPoint`; a reexibição usa o inverso
+ * `viewport.convertToViewportRectangle`.
+ */
+export function usePdf() {
+    const doc = shallowRef<PDFDocumentProxy | null>(null);
+    const numPages = ref(0);
+    const loading = ref(true);
+    const error = ref<string | null>(null);
+
+    // Render em voo: o pdf.js v6 recusa dois render() no mesmo canvas ao mesmo
+    // tempo ("Cannot use the same canvas") — cancelamos o anterior antes de
+    // trocar de página/zoom.
+    let currentTask: RenderTask | null = null;
+
+    // Import dinâmico: mantém o PDF.js fora do bundle SSR e só o carrega no client.
+    // Build "legacy": traz os polyfills de recursos JS recentes (ex.:
+    // Uint8Array.prototype.toHex) que faltam no Chromium do Electron.
+    async function pdfjs() {
+        const lib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+        if (!lib.GlobalWorkerOptions.workerSrc) {
+            const workerUrl = (await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')).default;
+            lib.GlobalWorkerOptions.workerSrc = workerUrl;
+        }
+        return lib;
+    }
+
+    async function load(url: string): Promise<void> {
+        loading.value = true;
+        error.value = null;
+        try {
+            const lib = await pdfjs();
+            doc.value = await lib.getDocument({ url }).promise;
+            numPages.value = doc.value.numPages;
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Falha ao abrir o PDF.';
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    /**
+     * Renderiza uma página no canvas e monta a camada de texto no `textLayerDiv`.
+     * Retorna o viewport dessa página para conversão de coordenadas.
+     */
+    async function renderPage(pageNumber: number, canvas: HTMLCanvasElement, textLayerDiv: HTMLElement, scale: number): Promise<PageViewport | null> {
+        if (!doc.value) {
+            return null;
+        }
+
+        // Cancela um render anterior ainda em voo antes de reusar o canvas.
+        currentTask?.cancel();
+
+        const lib = await pdfjs();
+        const page = await doc.value.getPage(pageNumber);
+        const viewport = page.getViewport({ scale });
+
+        // Renderiza na resolução do dispositivo para nitidez em telas HiDPI.
+        const dpr = window.devicePixelRatio || 1;
+        const context = canvas.getContext('2d');
+        if (!context) {
+            return null;
+        }
+
+        canvas.width = Math.floor(viewport.width * dpr);
+        canvas.height = Math.floor(viewport.height * dpr);
+        canvas.style.width = `${Math.floor(viewport.width)}px`;
+        canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+        const task = page.render({
+            canvasContext: context,
+            viewport,
+            transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
+        });
+        currentTask = task;
+
+        try {
+            await task.promise;
+        } catch (e) {
+            // Cancelamento é esperado ao trocar rápido de página — não é erro.
+            if (e instanceof Error && e.name === 'RenderingCancelledException') {
+                return null;
+            }
+            throw e;
+        } finally {
+            if (currentTask === task) {
+                currentTask = null;
+            }
+        }
+
+        // Camada de texto invisível sobre o canvas — habilita a seleção. Uma
+        // falha aqui não deve apagar a página já renderizada: degrada para uma
+        // página sem seleção em vez de tela em branco.
+        try {
+            textLayerDiv.replaceChildren();
+            textLayerDiv.style.width = `${viewport.width}px`;
+            textLayerDiv.style.height = `${viewport.height}px`;
+            textLayerDiv.style.setProperty('--total-scale-factor', String(scale));
+
+            const textContent = await page.getTextContent();
+            const textLayer = new lib.TextLayer({ textContentSource: textContent, container: textLayerDiv, viewport });
+            await textLayer.render();
+        } catch (e) {
+            console.error('Falha na camada de texto do PDF (seleção indisponível nesta página):', e);
+        }
+
+        return viewport;
+    }
+
+    function destroy(): void {
+        doc.value?.destroy();
+        doc.value = null;
+    }
+
+    return { numPages, loading, error, load, renderPage, destroy };
+}

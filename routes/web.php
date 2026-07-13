@@ -5,12 +5,17 @@ use App\Http\Controllers\ArticleDetectionController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\BookCoverController;
 use App\Http\Controllers\BookCoverImageController;
+use App\Http\Controllers\BookFileController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnrichmentController;
+use App\Http\Controllers\HighlightController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\PdfImportController;
 use App\Http\Controllers\StudyController;
 use App\Http\Controllers\TranslationController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -29,8 +34,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('importar/kindle', [ImportController::class, 'kindle'])->name('import.kindle');
 
     Route::get('livros', [BookController::class, 'index'])->name('books.index');
+    Route::post('livros/importar-pdf', PdfImportController::class)->name('books.import_pdf');
     Route::post('livros/{book}/capa', BookCoverController::class)->name('books.cover');
     Route::get('livros/{book}/capa.jpg', BookCoverImageController::class)->name('books.cover.image');
+    Route::get('livros/{book}/ler', [BookController::class, 'read'])->name('books.read');
+    Route::get('livros/{book}/arquivo.pdf', BookFileController::class)->name('books.file');
+    Route::get('livros/{book}/buscar', [BookController::class, 'search'])->name('books.search');
+    Route::post('livros/{book}/destaques', [HighlightController::class, 'store'])->name('highlights.store');
+    Route::delete('destaques/{highlight}', [HighlightController::class, 'destroy'])->name('highlights.destroy');
     Route::get('livros/{book}', [BookController::class, 'show'])->name('books.show');
     Route::delete('livros/{book}', [BookController::class, 'destroy'])->name('books.destroy');
 
@@ -45,6 +56,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('ia', [AiController::class, 'edit'])->name('ai.edit');
     Route::patch('ia', [AiController::class, 'update'])->name('ai.update');
+
+    // Debug temporário do leitor de PDF: registra erros do client no log do Laravel.
+    Route::post('debug/pdf-log', function (Request $request) {
+        Log::warning('[pdf-reader] '.$request->string('message'), $request->only(['url', 'stack']));
+
+        return response()->json(['logged' => true]);
+    })->name('debug.pdf_log');
 });
 
 require __DIR__.'/settings.php';

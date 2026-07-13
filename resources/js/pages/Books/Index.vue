@@ -3,14 +3,15 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { postJson } from '@/lib/api';
 import type { BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/vue3';
-import { BookOpen, Layers, Sparkles, Upload } from 'lucide-vue-next';
-import { onMounted, reactive } from 'vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { BookOpen, FileText, Layers, Loader2, Sparkles, Upload } from 'lucide-vue-next';
+import { onMounted, reactive, ref } from 'vue';
 
 interface BookSummary {
     id: number;
     title: string;
     author: string | null;
+    source: string;
     cover_url: string | null;
     cover_pending: boolean;
     highlights_count: number;
@@ -21,6 +22,36 @@ interface BookSummary {
 const props = defineProps<{ books: BookSummary[] }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Livros', href: '/livros' }];
+
+// Import de PDF: input escondido acionado pelo botão; envia o arquivo e o
+// servidor redireciona direto para o leitor.
+const pdfInput = ref<HTMLInputElement | null>(null);
+const pdfForm = useForm<{ file: File | null }>({ file: null });
+
+function pickPdf(): void {
+    pdfInput.value?.click();
+}
+
+function onPdfPicked(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) {
+        return;
+    }
+    pdfForm.file = file;
+    pdfForm.post(route('books.import_pdf'), {
+        forceFormData: true,
+        onFinish: () => {
+            pdfForm.reset();
+            if (pdfInput.value) {
+                pdfInput.value.value = '';
+            }
+        },
+    });
+}
+
+function openBook(book: BookSummary): string {
+    return book.source === 'pdf' ? route('books.read', book.id) : route('books.show', book.id);
+}
 
 // Estado local das capas: buscamos sob demanda as que ainda não foram tentadas,
 // sem bloquear o carregamento da página.
@@ -67,14 +98,26 @@ function formatDate(date: string | null): string | null {
     <Head title="Livros" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
+        <!-- Input escondido para escolher o PDF -->
+        <input ref="pdfInput" type="file" accept="application/pdf" class="hidden" @change="onPdfPicked" />
+
         <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
             <div v-if="!books.length" class="flex flex-1 flex-col items-center justify-center gap-3 text-center">
                 <BookOpen class="size-10 text-muted-foreground" />
                 <p class="font-medium">Nenhum livro ainda</p>
-                <p class="max-w-sm text-sm text-muted-foreground">Importe o My Clippings.txt do seu Kindle para ver seus livros e destaques aqui.</p>
-                <Button as-child>
-                    <Link :href="route('import.create')"><Upload class="size-4" /> Importar destaques</Link>
-                </Button>
+                <p class="max-w-sm text-sm text-muted-foreground">
+                    Importe o My Clippings.txt do seu Kindle ou envie um PDF para ler e marcar palavras direto no texto.
+                </p>
+                <div class="flex flex-wrap justify-center gap-2">
+                    <Button as-child>
+                        <Link :href="route('import.create')"><Upload class="size-4" /> Importar destaques</Link>
+                    </Button>
+                    <Button variant="outline" :disabled="pdfForm.processing" @click="pickPdf">
+                        <Loader2 v-if="pdfForm.processing" class="size-4 animate-spin" />
+                        <FileText v-else class="size-4" />
+                        Importar PDF
+                    </Button>
+                </div>
             </div>
 
             <template v-else>
@@ -83,18 +126,33 @@ function formatDate(date: string | null): string | null {
                         <h1 class="text-2xl font-semibold tracking-tight">Biblioteca</h1>
                         <p class="text-sm text-muted-foreground">{{ books.length }} livro(s) · ordenados pelos destaques mais recentes</p>
                     </div>
-                    <Button variant="outline" as-child>
-                        <Link :href="route('import.create')"><Upload class="size-4" /> Importar</Link>
-                    </Button>
+                    <div class="flex gap-2">
+                        <Button variant="outline" :disabled="pdfForm.processing" @click="pickPdf">
+                            <Loader2 v-if="pdfForm.processing" class="size-4 animate-spin" />
+                            <FileText v-else class="size-4" />
+                            Importar PDF
+                        </Button>
+                        <Button variant="outline" as-child>
+                            <Link :href="route('import.create')"><Upload class="size-4" /> Importar</Link>
+                        </Button>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-                    <Link v-for="book in books" :key="book.id" :href="route('books.show', book.id)" class="group flex flex-col gap-2.5">
+                    <Link v-for="book in books" :key="book.id" :href="openBook(book)" class="group flex flex-col gap-2.5">
                         <div
                             class="relative aspect-[2/3] overflow-hidden rounded-md bg-muted shadow-md ring-1 ring-black/5 transition-all duration-200 group-hover:-translate-y-1 group-hover:shadow-xl dark:ring-white/10"
                         >
                             <!-- Lombada: gradiente sutil na borda esquerda para dar volume de livro -->
                             <div class="pointer-events-none absolute inset-y-0 left-0 z-10 w-3 bg-gradient-to-r from-black/25 to-transparent"></div>
+
+                            <!-- Selo de PDF (livro lido no leitor embutido) -->
+                            <span
+                                v-if="book.source === 'pdf'"
+                                class="absolute right-1.5 top-1.5 z-10 inline-flex items-center gap-1 rounded bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white"
+                            >
+                                <FileText class="size-3" /> PDF
+                            </span>
 
                             <!-- Capa real -->
                             <img

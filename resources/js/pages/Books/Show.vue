@@ -6,8 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { postJson } from '@/lib/api';
 import type { BreadcrumbItem, HighlightData } from '@/types';
-import { Head } from '@inertiajs/vue3';
-import { CalendarRange, Check, GraduationCap, Layers, MapPin, Plus, Sparkles, StickyNote, X } from 'lucide-vue-next';
+import { Head, Link } from '@inertiajs/vue3';
+import { BookOpen, CalendarRange, Check, GraduationCap, Layers, MapPin, Plus, Sparkles, StickyNote, X } from 'lucide-vue-next';
 import { computed, reactive, ref } from 'vue';
 
 interface WordCount {
@@ -26,7 +26,7 @@ interface BookStats {
 }
 
 const props = defineProps<{
-    book: { id: number; title: string; author: string | null; cover_url: string | null };
+    book: { id: number; title: string; author: string | null; source: string; cover_url: string | null };
     highlights: HighlightData[];
     stats: BookStats;
     words: WordCount[];
@@ -139,10 +139,13 @@ function meta(highlight: HighlightData): string {
                     :alt="`Capa de ${book.title}`"
                     class="h-28 w-[74px] shrink-0 rounded-md object-cover shadow-md ring-1 ring-black/5 dark:ring-white/10"
                 />
-                <div class="min-w-0 self-center">
+                <div class="min-w-0 flex-1 self-center">
                     <h1 class="text-xl font-semibold leading-tight">{{ book.title }}</h1>
                     <p class="text-sm text-muted-foreground">{{ book.author ?? 'Autor desconhecido' }}</p>
                 </div>
+                <Button v-if="book.source === 'pdf'" class="self-center" as-child>
+                    <Link :href="route('books.read', book.id)"><BookOpen class="size-4" /> Ler PDF</Link>
+                </Button>
             </div>
 
             <!-- Estatísticas -->
