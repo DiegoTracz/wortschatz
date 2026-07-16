@@ -41,6 +41,17 @@ if (is_file($pruneTrait) && str_contains($contents = (string) file_get_contents(
     echo "[native-electron] Timeout do composer install do build estendido para 3600s.\n";
 }
 
+// O plugin da NativePHP loga no console a cada minuto (scheduler). Se o app
+// for aberto por um terminal que depois fecha (ou qualquer pipe que morra),
+// cada console.log vira "write EPIPE" — exceção não tratada no main process e
+// um dialog de erro recorrente. Ignorar erros de escrita nos streams resolve.
+$mainEntry = $jsDir.'/src/main/index.js';
+$guard = "for (const stream of [process.stdout, process.stderr]) { stream?.on?.('error', () => {}); }";
+if (is_file($mainEntry) && ! str_contains($contents = (string) file_get_contents($mainEntry), 'process.stdout')) {
+    file_put_contents($mainEntry, "// Logar num stdout/stderr morto não pode derrubar o app (write EPIPE).\n{$guard}\n\n".$contents);
+    echo "[native-electron] Guarda de EPIPE nos streams aplicada ao main do driver.\n";
+}
+
 if (trim((string) shell_exec("npm --version 2>{$devNull}")) === '') {
     fwrite(STDERR, "[native-electron] npm não encontrado; pulei o ajuste do Electron.\n");
     exit(0);
