@@ -25,6 +25,8 @@ export interface SharedData {
         success: string | null;
         import_result: { imported: number; skipped: number; books: number } | null;
         import_error: string | null;
+        sync_result: { books: number; highlights: number; cards: number; cards_updated: number; reviews: number } | null;
+        sync_error: string | null;
     };
     ziggy: {
         location: string;

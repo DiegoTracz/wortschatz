@@ -32,6 +32,15 @@ if (! is_file($npmrc) || ! str_contains((string) file_get_contents($npmrc), 'leg
     echo "[native-electron] .npmrc: legacy-peer-deps=true aplicado.\n";
 }
 
+// O passo "composer install --no-dev" do native:build tem timeout fixo de 300s
+// no driver — pouco para baixar o nativephp/php-bin (centenas de MB) em rede
+// lenta. Estende para 3600s; vive no vendor, então é reaplicado a cada install.
+$pruneTrait = __DIR__.'/../vendor/nativephp/electron/src/Traits/PrunesVendorDirectory.php';
+if (is_file($pruneTrait) && str_contains($contents = (string) file_get_contents($pruneTrait), '->timeout(300)')) {
+    file_put_contents($pruneTrait, str_replace('->timeout(300)', '->timeout(3600)', $contents));
+    echo "[native-electron] Timeout do composer install do build estendido para 3600s.\n";
+}
+
 if (trim((string) shell_exec("npm --version 2>{$devNull}")) === '') {
     fwrite(STDERR, "[native-electron] npm não encontrado; pulei o ajuste do Electron.\n");
     exit(0);

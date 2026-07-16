@@ -3,17 +3,31 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Card extends Model
 {
+    use HasUuids;
+
     protected $fillable = [
         'user_id', 'highlight_id', 'front', 'back', 'context', 'mnemonic',
         'stability', 'difficulty', 'interval_days', 'repetitions', 'lapses',
         'last_reviewed_at', 'due_at',
     ];
+
+    /**
+     * O uuid identifica o cartão entre máquinas (sync); a chave primária segue
+     * sendo o id auto-incremental.
+     *
+     * @return array<int, string>
+     */
+    public function uniqueIds(): array
+    {
+        return ['uuid'];
+    }
 
     protected function casts(): array
     {

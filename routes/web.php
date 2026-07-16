@@ -13,6 +13,7 @@ use App\Http\Controllers\HighlightController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\PdfImportController;
 use App\Http\Controllers\StudyController;
+use App\Http\Controllers\SyncController;
 use App\Http\Controllers\TranslationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -44,6 +45,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('destaques/{highlight}', [HighlightController::class, 'destroy'])->name('highlights.destroy');
     Route::get('livros/{book}', [BookController::class, 'show'])->name('books.show');
     Route::delete('livros/{book}', [BookController::class, 'destroy'])->name('books.destroy');
+
+    Route::get('sincronizar', [SyncController::class, 'index'])->name('sync.index');
+    Route::get('sincronizar/exportar', [SyncController::class, 'export'])->name('sync.export');
+    Route::post('sincronizar/importar', [SyncController::class, 'import'])->name('sync.import');
 
     Route::get('cartoes', [CardController::class, 'index'])->name('cards.index');
     Route::post('cartoes', [CardController::class, 'store'])->name('cards.store');

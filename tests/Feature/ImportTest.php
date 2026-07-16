@@ -7,7 +7,13 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 
 // A importação busca capas no Google Books; fake para não sair para a rede.
-beforeEach(fn () => Http::fake(['www.googleapis.com/*' => Http::response(['items' => []])]));
+// Registrado por teste (não em beforeEach): dois fakes para o mesmo padrão não
+// se sobrepõem — o primeiro registrado vence, o que engoliria o fake específico
+// do teste da capa.
+function fakeEmptyGoogleBooks(): void
+{
+    Http::fake(['www.googleapis.com/*' => Http::response(['items' => []])]);
+}
 
 function clippingsFile(): UploadedFile
 {
@@ -17,6 +23,8 @@ function clippingsFile(): UploadedFile
 }
 
 test('importa destaques agrupados por livro', function () {
+    fakeEmptyGoogleBooks();
+
     $user = User::factory()->create();
 
     $response = $this->actingAs($user)->post(route('import.store'), ['file' => clippingsFile()]);
@@ -30,6 +38,8 @@ test('importa destaques agrupados por livro', function () {
 });
 
 test('reimportar o mesmo arquivo não duplica destaques', function () {
+    fakeEmptyGoogleBooks();
+
     $user = User::factory()->create();
 
     $this->actingAs($user)->post(route('import.store'), ['file' => clippingsFile()]);
