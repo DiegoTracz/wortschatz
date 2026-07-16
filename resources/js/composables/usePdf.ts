@@ -144,7 +144,9 @@ export function usePdf() {
 
         await page.render({ canvasContext: context, viewport }).promise;
 
-        const [a, b, c, d] = viewport.convertToViewportRectangle([rect.x0, rect.y0, rect.x1, rect.y1]);
+        // pdf.js v6 removeu convertToViewportRectangle; compõe-se com dois pontos.
+        const [a, b] = viewport.convertToViewportPoint(rect.x0, rect.y0);
+        const [c, d] = viewport.convertToViewportPoint(rect.x1, rect.y1);
         const left = Math.max(0, Math.floor(Math.min(a, c)));
         const top = Math.max(0, Math.floor(Math.min(b, d)));
         const width = Math.min(full.width - left, Math.ceil(Math.abs(c - a)));

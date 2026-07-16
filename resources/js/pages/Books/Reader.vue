@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import CardFormDialog from '@/components/CardFormDialog.vue';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useOcr } from '@/composables/useOcr';
 import { usePdf } from '@/composables/usePdf';
 import { deleteJson, postJson, putJson } from '@/lib/api';
@@ -107,6 +106,35 @@ const snipRect = ref<Rect | null>(null);
 const snipError = ref<string | null>(null);
 const snipSaving = ref(false);
 
+// Painel do recorte: flutuante e arrastável, sem backdrop — dá para comparar
+// o texto reconhecido com o original na página enquanto edita.
+const panelPos = ref({ x: 0, y: 0 });
+let panelDragOffset: { dx: number; dy: number } | null = null;
+
+function openSnipPanel(): void {
+    panelPos.value = { x: Math.max(16, window.innerWidth - 416 - 24), y: 88 };
+    snipDialogOpen.value = true;
+}
+
+function onPanelDrag(event: MouseEvent): void {
+    if (!panelDragOffset) {
+        return;
+    }
+    panelPos.value = { x: event.clientX - panelDragOffset.dx, y: event.clientY - panelDragOffset.dy };
+}
+
+function stopPanelDrag(): void {
+    panelDragOffset = null;
+    window.removeEventListener('mousemove', onPanelDrag);
+    window.removeEventListener('mouseup', stopPanelDrag);
+}
+
+function startPanelDrag(event: MouseEvent): void {
+    panelDragOffset = { dx: event.clientX - panelPos.value.x, dy: event.clientY - panelPos.value.y };
+    window.addEventListener('mousemove', onPanelDrag);
+    window.addEventListener('mouseup', stopPanelDrag);
+}
+
 // Busca dentro do PDF.
 const searchOpen = ref(false);
 const searchQuery = ref('');
@@ -114,7 +142,9 @@ const searchResults = ref<{ page: number; snippet: string }[]>([]);
 const searching = ref(false);
 
 function rectToBox(vp: PageViewport, rect: Rect): Box {
-    const [a, b, c, d] = vp.convertToViewportRectangle([rect.x0, rect.y0, rect.x1, rect.y1]);
+    // pdf.js v6 removeu convertToViewportRectangle; compõe-se com dois pontos.
+    const [a, b] = vp.convertToViewportPoint(rect.x0, rect.y0);
+    const [c, d] = vp.convertToViewportPoint(rect.x1, rect.y1);
     return { left: Math.min(a, c), top: Math.min(b, d), width: Math.abs(c - a), height: Math.abs(d - b) };
 }
 
@@ -197,6 +227,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
     window.removeEventListener('unhandledrejection', onGlobalRejection);
     window.removeEventListener('error', onGlobalError);
+    stopPanelDrag();
     pdf.destroy();
 });
 
@@ -411,7 +442,7 @@ async function onSnipUp(): Promise<void> {
     snipRect.value = rect;
     snipText.value = '';
     snipError.value = null;
-    snipDialogOpen.value = true;
+    openSnipPanel();
 
     try {
         const crop = await pdf.renderRegion(currentPage.value, rect);
@@ -671,18 +702,28 @@ async function runSearch(): Promise<void> {
             </main>
         </div>
 
-        <!-- Dialog do recorte: texto do OCR editável (ou digitado à mão) antes de
-             virar destaque/cartão. -->
-        <Dialog v-model:open="snipDialogOpen">
-            <DialogContent class="sm:max-w-lg">
-                <DialogHeader>
-                    <DialogTitle>Trecho recortado</DialogTitle>
-                    <DialogDescription>
-                        Revise o texto reconhecido — o OCR de livro escaneado erra de vez em quando. Você também pode digitar do zero.
-                    </DialogDescription>
-                </DialogHeader>
+        <!-- Painel do recorte: flutuante, sem escurecer o fundo e arrastável pelo
+             topo — o texto do OCR fica editável (ou digitado à mão) com o
+             original visível na página. -->
+        <div
+            v-if="snipDialogOpen"
+            class="fixed z-40 w-[26rem] max-w-[90vw] rounded-lg border bg-popover shadow-xl"
+            :style="{ left: `${panelPos.x}px`, top: `${panelPos.y}px` }"
+        >
+            <div
+                class="flex cursor-move select-none items-center justify-between rounded-t-lg border-b bg-muted/60 px-3 py-2"
+                @mousedown.prevent="startPanelDrag"
+            >
+                <p class="text-sm font-medium">Trecho recortado</p>
+                <Button variant="ghost" size="icon" class="size-6" :disabled="snipSaving" @mousedown.stop @click="snipDialogOpen = false">
+                    <X class="size-3.5" />
+                </Button>
+            </div>
 
-                <div v-if="ocr.recognizing.value" class="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+            <div class="space-y-2 p-3">
+                <p class="text-xs text-muted-foreground">Revise o texto reconhecido — o OCR erra de vez em quando — ou digite do zero.</p>
+
+                <div v-if="ocr.recognizing.value" class="flex items-center gap-2 py-3 text-sm text-muted-foreground">
                     <Loader2 class="size-4 animate-spin" /> Reconhecendo o texto do recorte…
                 </div>
                 <template v-else>
@@ -695,23 +736,24 @@ async function runSearch(): Promise<void> {
                     <p v-if="snipError" class="text-xs text-destructive">{{ snipError }}</p>
                 </template>
 
-                <DialogFooter>
-                    <Button variant="ghost" :disabled="snipSaving" @click="snipDialogOpen = false">Cancelar</Button>
+                <div class="flex justify-end gap-2 pt-1">
+                    <Button size="sm" variant="ghost" :disabled="snipSaving" @click="snipDialogOpen = false">Cancelar</Button>
                     <Button
+                        size="sm"
                         variant="secondary"
                         :disabled="ocr.recognizing.value || snipSaving || snipText.trim().length < 2"
                         @click="saveSnip(false)"
                     >
                         Só marcar
                     </Button>
-                    <Button :disabled="ocr.recognizing.value || snipSaving || snipText.trim().length < 2" @click="saveSnip(true)">
+                    <Button size="sm" :disabled="ocr.recognizing.value || snipSaving || snipText.trim().length < 2" @click="saveSnip(true)">
                         <Loader2 v-if="snipSaving" class="size-4 animate-spin" />
                         <Plus v-else class="size-4" />
                         Criar cartão
                     </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                </div>
+            </div>
+        </div>
 
         <CardFormDialog v-model:open="dialogOpen" :highlight="dialogHighlight" :preset-front="dialogPreset" :language="bookLanguage" preserve-state />
     </div>
