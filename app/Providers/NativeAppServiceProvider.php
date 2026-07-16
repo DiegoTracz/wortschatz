@@ -35,7 +35,13 @@ class NativeAppServiceProvider implements ProvidesPhpIni
      */
     public function phpIni(): array
     {
+        // O PHP embutido sobe com os defaults (post_max_size 8M), que barram o
+        // upload de PDFs — a validação do import aceita até 100M, então os
+        // limites do runtime precisam acompanhar.
         return [
+            'upload_max_filesize' => '100M',
+            'post_max_size' => '110M',
+            'memory_limit' => '512M',
         ];
     }
 }
