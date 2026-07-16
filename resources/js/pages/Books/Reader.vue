@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import CardFormDialog from '@/components/CardFormDialog.vue';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useOcr } from '@/composables/useOcr';
 import { usePdf } from '@/composables/usePdf';
 import { deleteJson, postJson } from '@/lib/api';
 import { Head, Link } from '@inertiajs/vue3';
-import { ChevronLeft, ChevronRight, Loader2, Plus, Search, Trash2, X, ZoomIn, ZoomOut } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, Loader2, Plus, ScanText, Search, Trash2, X, ZoomIn, ZoomOut } from 'lucide-vue-next';
 import type { PageViewport } from 'pdfjs-dist';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 
@@ -37,6 +39,7 @@ const props = defineProps<{
 }>();
 
 const pdf = usePdf();
+const ocr = useOcr();
 
 const canvasEl = ref<HTMLCanvasElement | null>(null);
 const textLayerEl = ref<HTMLElement | null>(null);
@@ -77,6 +80,17 @@ const dialogHighlight = ref<{ id: number; content: string } | null>(null);
 const dialogPreset = ref<string | null>(null);
 
 const actionError = ref<string | null>(null);
+
+// Modo recorte: para PDFs escaneados sem camada de texto útil — o usuário
+// arrasta um retângulo sobre o trecho, o OCR (offline, alemão) reconhece as
+// letras e o texto abre num dialog editável antes de virar destaque/cartão.
+const snipMode = ref(false);
+const snipDrag = ref<{ startX: number; startY: number; box: Box } | null>(null);
+const snipDialogOpen = ref(false);
+const snipText = ref('');
+const snipRect = ref<Rect | null>(null);
+const snipError = ref<string | null>(null);
+const snipSaving = ref(false);
 
 // Busca dentro do PDF.
 const searchOpen = ref(false);
@@ -333,6 +347,113 @@ async function removeHighlight(highlight: PdfHighlight): Promise<void> {
     }
 }
 
+function toggleSnipMode(): void {
+    snipMode.value = !snipMode.value;
+    snipDrag.value = null;
+    clearPopovers();
+}
+
+function onSnipDown(event: MouseEvent): void {
+    const layer = textLayerEl.value;
+    if (!layer) {
+        return;
+    }
+    const layerRect = layer.getBoundingClientRect();
+    const x = event.clientX - layerRect.left;
+    const y = event.clientY - layerRect.top;
+    snipDrag.value = { startX: x, startY: y, box: { left: x, top: y, width: 0, height: 0 } };
+}
+
+function onSnipMove(event: MouseEvent): void {
+    const drag = snipDrag.value;
+    const layer = textLayerEl.value;
+    if (!drag || !layer) {
+        return;
+    }
+    const layerRect = layer.getBoundingClientRect();
+    const x = event.clientX - layerRect.left;
+    const y = event.clientY - layerRect.top;
+    drag.box = {
+        left: Math.min(drag.startX, x),
+        top: Math.min(drag.startY, y),
+        width: Math.abs(x - drag.startX),
+        height: Math.abs(y - drag.startY),
+    };
+}
+
+async function onSnipUp(): Promise<void> {
+    const drag = snipDrag.value;
+    const vp = viewport.value;
+    snipDrag.value = null;
+    if (!drag || !vp || drag.box.width < 8 || drag.box.height < 8) {
+        return;
+    }
+
+    const [px0, py0] = vp.convertToPdfPoint(drag.box.left, drag.box.top);
+    const [px1, py1] = vp.convertToPdfPoint(drag.box.left + drag.box.width, drag.box.top + drag.box.height);
+    const rect: Rect = { x0: Math.min(px0, px1), y0: Math.min(py0, py1), x1: Math.max(px0, px1), y1: Math.max(py0, py1) };
+
+    snipRect.value = rect;
+    snipText.value = '';
+    snipError.value = null;
+    snipDialogOpen.value = true;
+
+    try {
+        const crop = await pdf.renderRegion(currentPage.value, rect);
+        if (!crop) {
+            snipError.value = 'Não consegui recortar essa região.';
+            return;
+        }
+        snipText.value = await ocr.recognize(crop);
+        if (!snipText.value) {
+            snipError.value = 'O OCR não reconheceu texto — digite manualmente abaixo.';
+        }
+    } catch (error) {
+        snipError.value = 'Falha no OCR — digite o texto manualmente. ' + (error instanceof Error ? `(${error.message})` : '');
+        reportError('ocr', error instanceof Error ? (error.stack ?? error.message) : String(error));
+    }
+}
+
+async function persistSnip(): Promise<PdfHighlight | null> {
+    const rect = snipRect.value;
+    const content = snipText.value.trim();
+    if (!rect || content.length < 2) {
+        return null;
+    }
+
+    snipSaving.value = true;
+    try {
+        const saved = await postJson<{ id: number; content: string; page: number; anchor: PdfHighlight['anchor'] }>(
+            route('highlights.store', props.book.id),
+            { content, page: currentPage.value, anchor: { page: currentPage.value, rects: [rect] } },
+        );
+
+        let highlight = localHighlights.value.find((h) => h.id === saved.id);
+        if (!highlight) {
+            highlight = { id: saved.id, content: saved.content, page: saved.page, anchor: saved.anchor, cards: [] };
+            localHighlights.value.push(highlight);
+        }
+        return highlight;
+    } catch (error) {
+        snipError.value = error instanceof Error ? error.message : 'Falha ao salvar destaque.';
+        return null;
+    } finally {
+        snipSaving.value = false;
+    }
+}
+
+async function saveSnip(asCard: boolean): Promise<void> {
+    const highlight = await persistSnip();
+    if (!highlight) {
+        return;
+    }
+    snipDialogOpen.value = false;
+    if (asCard) {
+        const text = highlight.content;
+        openCardDialog(highlight, !/\s/.test(text) ? text : null);
+    }
+}
+
 async function runSearch(): Promise<void> {
     const query = searchQuery.value.trim();
     if (query.length < 2) {
@@ -390,6 +511,15 @@ async function runSearch(): Promise<void> {
                 <span class="w-10 text-center text-xs text-muted-foreground">{{ Math.round(scale * 100) }}%</span>
                 <Button variant="ghost" size="icon" title="Aumentar zoom" @click="zoomIn"><ZoomIn class="size-4" /></Button>
             </div>
+
+            <Button
+                :variant="snipMode ? 'default' : 'ghost'"
+                size="icon"
+                title="Recortar trecho (OCR) — para livros escaneados"
+                @click="toggleSnipMode"
+            >
+                <ScanText class="size-4" />
+            </Button>
 
             <Button variant="ghost" size="icon" title="Buscar no livro" @click="searchOpen = !searchOpen"><Search class="size-4" /></Button>
         </header>
@@ -449,6 +579,28 @@ async function runSearch(): Promise<void> {
                         <canvas ref="canvasEl" class="block"></canvas>
                         <div ref="textLayerEl" class="textLayer" @mousedown="clearPopovers" @mouseup="onPointerUp"></div>
 
+                        <!-- Overlay do modo recorte: captura o arrasto acima da camada
+                             de texto e desenha a marquise. -->
+                        <div
+                            v-if="snipMode"
+                            class="absolute inset-0 z-10 cursor-crosshair"
+                            @mousedown.prevent="onSnipDown"
+                            @mousemove="onSnipMove"
+                            @mouseup="onSnipUp"
+                            @mouseleave="snipDrag = null"
+                        >
+                            <div
+                                v-if="snipDrag"
+                                class="absolute border-2 border-dashed border-primary bg-primary/10"
+                                :style="{
+                                    left: `${snipDrag.box.left}px`,
+                                    top: `${snipDrag.box.top}px`,
+                                    width: `${snipDrag.box.width}px`,
+                                    height: `${snipDrag.box.height}px`,
+                                }"
+                            ></div>
+                        </div>
+
                         <!-- Camada de overlays/popovers gerida pelo Vue, sobreposta e
                              isolada da subárvore do PDF.js. -->
                         <div class="pointer-events-none absolute inset-0">
@@ -493,6 +645,48 @@ async function runSearch(): Promise<void> {
                 </div>
             </main>
         </div>
+
+        <!-- Dialog do recorte: texto do OCR editável (ou digitado à mão) antes de
+             virar destaque/cartão. -->
+        <Dialog v-model:open="snipDialogOpen">
+            <DialogContent class="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Trecho recortado</DialogTitle>
+                    <DialogDescription>
+                        Revise o texto reconhecido — o OCR de livro escaneado erra de vez em quando. Você também pode digitar do zero.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div v-if="ocr.recognizing.value" class="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                    <Loader2 class="size-4 animate-spin" /> Reconhecendo o texto do recorte…
+                </div>
+                <template v-else>
+                    <textarea
+                        v-model="snipText"
+                        rows="4"
+                        placeholder="Texto do trecho…"
+                        class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    ></textarea>
+                    <p v-if="snipError" class="text-xs text-destructive">{{ snipError }}</p>
+                </template>
+
+                <DialogFooter>
+                    <Button variant="ghost" :disabled="snipSaving" @click="snipDialogOpen = false">Cancelar</Button>
+                    <Button
+                        variant="secondary"
+                        :disabled="ocr.recognizing.value || snipSaving || snipText.trim().length < 2"
+                        @click="saveSnip(false)"
+                    >
+                        Só marcar
+                    </Button>
+                    <Button :disabled="ocr.recognizing.value || snipSaving || snipText.trim().length < 2" @click="saveSnip(true)">
+                        <Loader2 v-if="snipSaving" class="size-4 animate-spin" />
+                        <Plus v-else class="size-4" />
+                        Criar cartão
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <CardFormDialog v-model:open="dialogOpen" :highlight="dialogHighlight" :preset-front="dialogPreset" preserve-state />
     </div>

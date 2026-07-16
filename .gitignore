@@ -28,3 +28,4 @@ yarn-error.log
 /.mcp.json
 /.claude/settings.local.json
 /public/vendor/pdfjs-wasm
+/public/vendor/ocr-engine

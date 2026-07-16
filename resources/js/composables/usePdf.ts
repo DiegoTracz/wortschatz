@@ -117,10 +117,54 @@ export function usePdf() {
         return viewport;
     }
 
+    /**
+     * Renderiza um recorte da página (retângulo em coordenadas PDF) num canvas
+     * offscreen em escala alta — insumo para o OCR do modo recorte, que precisa
+     * de mais resolução do que a página exibida.
+     */
+    async function renderRegion(
+        pageNumber: number,
+        rect: { x0: number; y0: number; x1: number; y1: number },
+        targetScale = 3,
+    ): Promise<HTMLCanvasElement | null> {
+        if (!doc.value) {
+            return null;
+        }
+
+        const page = await doc.value.getPage(pageNumber);
+        const viewport = page.getViewport({ scale: targetScale });
+
+        const full = document.createElement('canvas');
+        full.width = Math.floor(viewport.width);
+        full.height = Math.floor(viewport.height);
+        const context = full.getContext('2d');
+        if (!context) {
+            return null;
+        }
+
+        await page.render({ canvasContext: context, viewport }).promise;
+
+        const [a, b, c, d] = viewport.convertToViewportRectangle([rect.x0, rect.y0, rect.x1, rect.y1]);
+        const left = Math.max(0, Math.floor(Math.min(a, c)));
+        const top = Math.max(0, Math.floor(Math.min(b, d)));
+        const width = Math.min(full.width - left, Math.ceil(Math.abs(c - a)));
+        const height = Math.min(full.height - top, Math.ceil(Math.abs(d - b)));
+        if (width < 4 || height < 4) {
+            return null;
+        }
+
+        const crop = document.createElement('canvas');
+        crop.width = width;
+        crop.height = height;
+        crop.getContext('2d')?.drawImage(full, left, top, width, height, 0, 0, width, height);
+
+        return crop;
+    }
+
     function destroy(): void {
         doc.value?.destroy();
         doc.value = null;
     }
 
-    return { numPages, loading, error, load, renderPage, destroy };
+    return { numPages, loading, error, load, renderPage, renderRegion, destroy };
 }
