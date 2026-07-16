@@ -164,7 +164,10 @@ export function usePdf() {
     }
 
     function destroy(): void {
-        doc.value?.destroy();
+        // pdf.js v6 removeu PDFDocumentProxy.destroy(); a limpeza é pelo
+        // loadingTask. Um throw aqui quebraria o unmount do Vue (tela trava
+        // ao navegar), então tudo em optional chaining.
+        doc.value?.loadingTask?.destroy?.();
         doc.value = null;
     }
 
