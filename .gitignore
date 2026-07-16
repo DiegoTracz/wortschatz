@@ -27,3 +27,4 @@ yarn-error.log
 /testing
 /.mcp.json
 /.claude/settings.local.json
+/public/vendor/pdfjs-wasm

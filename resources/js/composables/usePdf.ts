@@ -38,7 +38,9 @@ export function usePdf() {
         error.value = null;
         try {
             const lib = await pdfjs();
-            doc.value = await lib.getDocument({ url }).promise;
+            // wasmUrl: decodificadores JBIG2/JPX de PDFs escaneados — os
+            // binários são copiados para public/ pelo plugin do vite.config.
+            doc.value = await lib.getDocument({ url, wasmUrl: '/vendor/pdfjs-wasm/' }).promise;
             numPages.value = doc.value.numPages;
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Falha ao abrir o PDF.';
