@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { postJson } from '@/lib/api';
 import type { BreadcrumbItem } from '@/types';
@@ -23,10 +24,12 @@ const props = defineProps<{ books: BookSummary[] }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Livros', href: '/livros' }];
 
-// Import de PDF: input escondido acionado pelo botão; envia o arquivo e o
-// servidor redireciona direto para o leitor.
+// Import de PDF: input escondido acionado pelo botão; escolhido o arquivo,
+// pergunta-se o idioma do livro (direciona OCR e tradução) e o servidor
+// redireciona direto para o leitor.
 const pdfInput = ref<HTMLInputElement | null>(null);
-const pdfForm = useForm<{ file: File | null }>({ file: null });
+const pdfForm = useForm<{ file: File | null; language: string }>({ file: null, language: 'de' });
+const languageDialogOpen = ref(false);
 
 function pickPdf(): void {
     pdfInput.value?.click();
@@ -38,6 +41,12 @@ function onPdfPicked(event: Event): void {
         return;
     }
     pdfForm.file = file;
+    languageDialogOpen.value = true;
+}
+
+function submitPdf(language: string): void {
+    pdfForm.language = language;
+    languageDialogOpen.value = false;
     pdfForm.post(route('books.import_pdf'), {
         forceFormData: true,
         onFinish: () => {
@@ -100,6 +109,20 @@ function formatDate(date: string | null): string | null {
     <AppLayout :breadcrumbs="breadcrumbs">
         <!-- Input escondido para escolher o PDF -->
         <input ref="pdfInput" type="file" accept="application/pdf" class="hidden" @change="onPdfPicked" />
+
+        <!-- Idioma do PDF escolhido: direciona OCR do recorte e tradução. -->
+        <Dialog v-model:open="languageDialogOpen">
+            <DialogContent class="sm:max-w-sm">
+                <DialogHeader>
+                    <DialogTitle>Qual o idioma do livro?</DialogTitle>
+                    <DialogDescription>Define o idioma do OCR do modo recorte e a origem das traduções dos cartões.</DialogDescription>
+                </DialogHeader>
+                <DialogFooter class="sm:justify-center">
+                    <Button class="flex-1" @click="submitPdf('de')">Alemão</Button>
+                    <Button class="flex-1" variant="secondary" @click="submitPdf('en')">Inglês</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
             <div v-if="!books.length" class="flex flex-1 flex-col items-center justify-center gap-3 text-center">

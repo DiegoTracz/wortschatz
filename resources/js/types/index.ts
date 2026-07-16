@@ -62,6 +62,7 @@ export interface CardData {
     repetitions: number;
     due_at: string;
     is_due: boolean;
+    language: string;
 }
 
 export interface StudyCard {

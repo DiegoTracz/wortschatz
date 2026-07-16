@@ -12,5 +12,6 @@ test('os assets do OCR (modo recorte) são publicados junto com o build', functi
     // Worker/core copiados pelo vite.config; o modelo de alemão é commitado.
     expect(file_exists(public_path('vendor/ocr-engine/worker.min.js')))->toBeTrue()
         ->and(is_dir(public_path('vendor/ocr-engine/core')))->toBeTrue()
-        ->and(file_exists(public_path('vendor/ocr/deu.traineddata.gz')))->toBeTrue();
+        ->and(file_exists(public_path('vendor/ocr/deu.traineddata.gz')))->toBeTrue()
+        ->and(file_exists(public_path('vendor/ocr/eng.traineddata.gz')))->toBeTrue();
 });

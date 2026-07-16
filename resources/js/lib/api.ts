@@ -32,6 +32,10 @@ export function postJson<T>(url: string, data: Record<string, unknown>): Promise
     return sendJson<T>('POST', url, data);
 }
 
+export function putJson<T>(url: string, data: Record<string, unknown>): Promise<T> {
+    return sendJson<T>('PUT', url, data);
+}
+
 export function deleteJson<T>(url: string): Promise<T> {
     return sendJson<T>('DELETE', url);
 }

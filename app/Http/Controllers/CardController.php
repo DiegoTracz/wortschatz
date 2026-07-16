@@ -18,6 +18,7 @@ class CardController extends Controller
                 $search = '%'.$request->string('search').'%';
                 $query->where(fn ($q) => $q->where('front', 'like', $search)->orWhere('back', 'like', $search));
             })
+            ->with('highlight.book:id,language')
             ->orderBy('due_at')
             ->paginate(25)
             ->withQueryString()
@@ -31,6 +32,8 @@ class CardController extends Controller
                 'repetitions' => $card->repetitions,
                 'due_at' => $card->due_at->toDateString(),
                 'is_due' => $card->due_at->isPast(),
+                // Idioma herdado do livro de origem; cartão avulso assume alemão.
+                'language' => $card->highlight?->book?->language ?? 'de',
             ]);
 
         return Inertia::render('Cards/Index', [

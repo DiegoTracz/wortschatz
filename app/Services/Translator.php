@@ -5,18 +5,19 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 
 /**
- * Traduz alemão → português usando a API gratuita do MyMemory.
+ * Traduz do idioma do livro (alemão ou inglês) → português usando a API
+ * gratuita do MyMemory.
  *
  * Sem chave: ~5.000 caracteres/dia. Definindo MYMEMORY_EMAIL no .env
  * o limite sobe para ~50.000 caracteres/dia.
  */
 class Translator
 {
-    public function translate(string $text): ?string
+    public function translate(string $text, string $source = 'de'): ?string
     {
         $query = [
             'q' => $text,
-            'langpair' => 'de|pt-BR',
+            'langpair' => "{$source}|pt-BR",
         ];
 
         if ($email = config('services.mymemory.email')) {

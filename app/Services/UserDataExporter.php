@@ -36,6 +36,7 @@ class UserDataExporter
                 'title' => $book->title,
                 'author' => $book->author,
                 'source' => $book->source,
+                'language' => $book->language,
                 'page_count' => $book->page_count,
                 'cover_url' => $book->cover_url,
             ])->all(),

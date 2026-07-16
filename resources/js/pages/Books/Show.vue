@@ -26,7 +26,7 @@ interface BookStats {
 }
 
 const props = defineProps<{
-    book: { id: number; title: string; author: string | null; source: string; cover_url: string | null };
+    book: { id: number; title: string; author: string | null; source: string; language: string; cover_url: string | null };
     highlights: HighlightData[];
     stats: BookStats;
     words: WordCount[];
@@ -289,6 +289,6 @@ function meta(highlight: HighlightData): string {
             <p v-if="!filteredHighlights.length" class="py-8 text-center text-sm text-muted-foreground">Nenhum destaque para “{{ filter }}”.</p>
         </div>
 
-        <CardFormDialog v-model:open="dialogOpen" :highlight="selectedHighlight" :preset-front="presetFront" />
+        <CardFormDialog v-model:open="dialogOpen" :highlight="selectedHighlight" :preset-front="presetFront" :language="book.language" />
     </AppLayout>
 </template>

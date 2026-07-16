@@ -86,6 +86,39 @@ test('importar um PDF cria um livro de leitura com o texto extraído por página
         ->and($book->pdfPages()->where('page', 2)->value('text'))->toContain('Zweite');
 });
 
+test('o import aceita o idioma do livro e assume alemão por padrão', function () {
+    Storage::fake('local');
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post(route('books.import_pdf'), [
+        'file' => UploadedFile::fake()->createWithContent('English Book.pdf', buildTestPdf(['Hello World'])),
+        'language' => 'en',
+    ]);
+
+    $this->actingAs($user)->post(route('books.import_pdf'), [
+        'file' => UploadedFile::fake()->createWithContent('Deutsches Buch.pdf', buildTestPdf(['Hallo Welt'])),
+    ]);
+
+    expect($user->books()->where('title', 'English Book')->value('language'))->toBe('en')
+        ->and($user->books()->where('title', 'Deutsches Buch')->value('language'))->toBe('de');
+});
+
+test('o idioma do livro pode ser trocado pelo leitor', function () {
+    $user = User::factory()->create();
+    $book = pdfBook($user);
+
+    $this->actingAs($user)
+        ->putJson(route('books.language', $book), ['language' => 'en'])
+        ->assertOk()
+        ->assertJson(['language' => 'en']);
+
+    expect($book->fresh()->language)->toBe('en');
+
+    // Valor fora do conjunto é rejeitado; livro de outro usuário, proibido.
+    $this->actingAs($user)->putJson(route('books.language', $book), ['language' => 'fr'])->assertUnprocessable();
+    $this->actingAs(User::factory()->create())->putJson(route('books.language', $book), ['language' => 'de'])->assertForbidden();
+});
+
 test('o import recusa arquivos que não são PDF', function () {
     Storage::fake('local');
     $user = User::factory()->create();

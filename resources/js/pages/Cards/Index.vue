@@ -125,6 +125,6 @@ function dueLabel(card: CardData): string {
             </div>
         </div>
 
-        <CardFormDialog v-model:open="dialogOpen" :card="editingCard" />
+        <CardFormDialog v-model:open="dialogOpen" :card="editingCard" :language="editingCard?.language" />
     </AppLayout>
 </template>

@@ -20,7 +20,8 @@ class PdfImportController extends Controller
     {
         $request->validate([
             'file' => ['required', 'file', 'mimetypes:application/pdf', 'max:102400'],
-        ], [], ['file' => 'arquivo']);
+            'language' => ['nullable', 'string', 'in:de,en'],
+        ], [], ['file' => 'arquivo', 'language' => 'idioma']);
 
         $upload = $request->file('file');
         $title = pathinfo($upload->getClientOriginalName(), PATHINFO_FILENAME) ?: 'PDF sem título';
@@ -28,6 +29,7 @@ class PdfImportController extends Controller
         $book = $request->user()->books()->create([
             'title' => $title,
             'source' => 'pdf',
+            'language' => $request->input('language', 'de'),
             // Livro de PDF não busca capa no Google Books (o título é o nome do
             // arquivo); marca como resolvido para não virar cover_pending.
             'cover_fetched_at' => now(),

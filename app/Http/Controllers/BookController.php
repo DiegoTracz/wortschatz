@@ -73,7 +73,7 @@ class BookController extends Controller
         ];
 
         return Inertia::render('Books/Show', [
-            'book' => $book->only(['id', 'title', 'author', 'source', 'cover_url']),
+            'book' => $book->only(['id', 'title', 'author', 'source', 'language', 'cover_url']),
             'highlights' => $highlights->map(fn ($highlight) => [
                 'id' => $highlight->id,
                 'type' => $highlight->type,
@@ -107,7 +107,7 @@ class BookController extends Controller
             ->get();
 
         return Inertia::render('Books/Reader', [
-            'book' => $book->only(['id', 'title', 'page_count']),
+            'book' => $book->only(['id', 'title', 'page_count', 'language']),
             // URL relativa: o servidor embarcado do NativePHP troca de porta a cada boot.
             'fileUrl' => route('books.file', $book, absolute: false),
             'highlights' => $highlights->map(fn (Highlight $highlight) => [
@@ -211,6 +211,24 @@ class BookController extends Controller
             ->sortBy('date')
             ->values()
             ->all();
+    }
+
+    /**
+     * Idioma do conteúdo do livro: direciona o OCR do modo recorte, o par da
+     * tradução e a detecção de artigo (só alemão). Endpoint JSON: chamado do
+     * leitor, onde um reload do Inertia atrapalharia.
+     */
+    public function updateLanguage(Request $request, Book $book): JsonResponse
+    {
+        abort_unless($book->user_id === $request->user()->id, 403);
+
+        $data = $request->validate([
+            'language' => ['required', 'string', 'in:de,en'],
+        ]);
+
+        $book->update(['language' => $data['language']]);
+
+        return response()->json(['language' => $book->language]);
     }
 
     public function destroy(Request $request, Book $book): RedirectResponse

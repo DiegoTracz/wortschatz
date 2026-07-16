@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useOcr } from '@/composables/useOcr';
 import { usePdf } from '@/composables/usePdf';
-import { deleteJson, postJson } from '@/lib/api';
+import { deleteJson, postJson, putJson } from '@/lib/api';
 import { Head, Link } from '@inertiajs/vue3';
 import { ChevronLeft, ChevronRight, Loader2, Plus, ScanText, Search, Trash2, X, ZoomIn, ZoomOut } from 'lucide-vue-next';
 import type { PageViewport } from 'pdfjs-dist';
@@ -33,10 +33,25 @@ interface Box {
 }
 
 const props = defineProps<{
-    book: { id: number; title: string; page_count: number | null };
+    book: { id: number; title: string; page_count: number | null; language: string };
     fileUrl: string;
     highlights: PdfHighlight[];
 }>();
+
+// Idioma do livro (de/en): direciona o OCR do recorte e a tradução do cartão.
+// Editável direto na toolbar; persiste sem reload (endpoint JSON).
+const bookLanguage = ref(props.book.language);
+
+async function changeLanguage(event: Event): Promise<void> {
+    const language = (event.target as HTMLSelectElement).value;
+    const previous = bookLanguage.value;
+    bookLanguage.value = language;
+    try {
+        await putJson(route('books.language', props.book.id), { language });
+    } catch {
+        bookLanguage.value = previous;
+    }
+}
 
 const pdf = usePdf();
 const ocr = useOcr();
@@ -404,7 +419,7 @@ async function onSnipUp(): Promise<void> {
             snipError.value = 'Não consegui recortar essa região.';
             return;
         }
-        snipText.value = await ocr.recognize(crop);
+        snipText.value = await ocr.recognize(crop, bookLanguage.value);
         if (!snipText.value) {
             snipError.value = 'O OCR não reconheceu texto — digite manualmente abaixo.';
         }
@@ -511,6 +526,16 @@ async function runSearch(): Promise<void> {
                 <span class="w-10 text-center text-xs text-muted-foreground">{{ Math.round(scale * 100) }}%</span>
                 <Button variant="ghost" size="icon" title="Aumentar zoom" @click="zoomIn"><ZoomIn class="size-4" /></Button>
             </div>
+
+            <select
+                :value="bookLanguage"
+                class="rounded-md border border-input bg-background px-1.5 py-1 text-xs text-muted-foreground"
+                title="Idioma do livro (OCR e tradução)"
+                @change="changeLanguage"
+            >
+                <option value="de">DE</option>
+                <option value="en">EN</option>
+            </select>
 
             <Button
                 :variant="snipMode ? 'default' : 'ghost'"
@@ -688,7 +713,7 @@ async function runSearch(): Promise<void> {
             </DialogContent>
         </Dialog>
 
-        <CardFormDialog v-model:open="dialogOpen" :highlight="dialogHighlight" :preset-front="dialogPreset" preserve-state />
+        <CardFormDialog v-model:open="dialogOpen" :highlight="dialogHighlight" :preset-front="dialogPreset" :language="bookLanguage" preserve-state />
     </div>
 </template>
 

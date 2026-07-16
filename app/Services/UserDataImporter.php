@@ -66,6 +66,7 @@ class UserDataImporter
                 [
                     'author' => $entry['author'] ?? null,
                     'source' => $entry['source'] ?? 'kindle',
+                    'language' => $entry['language'] ?? 'de',
                     'page_count' => $entry['page_count'] ?? null,
                     'cover_url' => $entry['cover_url'] ?? null,
                     'cover_fetched_at' => isset($entry['cover_url']) ? now() : null,

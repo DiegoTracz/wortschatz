@@ -19,6 +19,9 @@ const props = defineProps<{
     // No leitor de PDF, preserva o componente da página ao salvar (não perde a
     // página renderizada / o scroll). Nos demais usos, recarrega normalmente.
     preserveState?: boolean;
+    // Idioma do conteúdo ('de' | 'en'): origem da tradução; a detecção de
+    // artigo (der/die/das) só roda para alemão.
+    language?: string;
 }>();
 
 const emit = defineEmits<{
@@ -119,6 +122,7 @@ function applyArticle(article: string) {
 async function detectArticle() {
     const word = form.front.trim();
 
+    if ((props.language ?? 'de') !== 'de') return;
     if (detectingArticle.value || !/^\p{Lu}[\p{L}-]*$/u.test(word)) return;
 
     detectingArticle.value = true;
@@ -146,7 +150,10 @@ async function translate() {
     translationError.value = null;
 
     try {
-        const { translation } = await postJson<{ translation: string }>(route('translate'), { text: form.front });
+        const { translation } = await postJson<{ translation: string }>(route('translate'), {
+            text: form.front,
+            source: props.language ?? 'de',
+        });
         form.back = translation;
     } catch (error) {
         translationError.value = error instanceof Error ? error.message : 'Falha na tradução.';

@@ -12,9 +12,10 @@ class TranslationController extends Controller
     {
         $data = $request->validate([
             'text' => ['required', 'string', 'max:500'],
+            'source' => ['nullable', 'string', 'in:de,en'],
         ]);
 
-        $translation = $translator->translate($data['text']);
+        $translation = $translator->translate($data['text'], $data['source'] ?? 'de');
 
         if ($translation === null) {
             return response()->json(['message' => 'Não foi possível traduzir agora. Tente novamente ou preencha manualmente.'], 502);

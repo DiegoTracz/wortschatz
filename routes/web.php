@@ -43,6 +43,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('livros/{book}/buscar', [BookController::class, 'search'])->name('books.search');
     Route::post('livros/{book}/destaques', [HighlightController::class, 'store'])->name('highlights.store');
     Route::delete('destaques/{highlight}', [HighlightController::class, 'destroy'])->name('highlights.destroy');
+    Route::put('livros/{book}/idioma', [BookController::class, 'updateLanguage'])->name('books.language');
     Route::get('livros/{book}', [BookController::class, 'show'])->name('books.show');
     Route::delete('livros/{book}', [BookController::class, 'destroy'])->name('books.destroy');
 
